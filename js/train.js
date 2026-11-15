@@ -52,6 +52,7 @@ export function renderTrain(train,allDays=[],stationIndex=null,locale='en',hasSt
  if(!train)return back+empty(ko?'이 열차의 운행 기록이 없습니다.':'No runs recorded for this train.',ko?'<p><a href="ko/">열차 도착 기록 보기</a></p>':`<p><a href="./">See yesterday’s trains</a></p>`);
  const w=train.windows.month,tmap=new Map(train.timetables.map(t=>[t.id,t])),current=train.timetables.at(-1),stops=current.stops,runs=train.runs.filter(r=>r.date>=w.from&&r.date<=w.to),ok=runs.filter(r=>r.status==='ok'),origin=stops[0],dest=stops.at(-1);
  const keyed=new Map(train.timetables.map(t=>[t.id,stopKeys(t.stops)])),getStops=r=>tmap.get(r.timetable)?.stops||[];
+ // Rows follow the latest schedule; each historical value belongs to the matching station visit in that run's own timetable.
  const valuesFor=(r,key)=>{const s=getStops(r)[keyed.get(r.timetable)?.indexOf(key)];return s?.arrival!=null?r.delays?.[s.ordinal]??null:null;};
  const finalFor=r=>{const s=getStops(r).filter(s=>s.arrival!=null).at(-1);return s?r.delays?.[s.ordinal]??null:null;};
  const head=(stats='')=>`<div class="train-intro train-head"><div class="train-lead">${backBtn}<div><h1>${esc(train.type)} <span class="train-number">${train.number}</span><span class="h1-sep"> · </span><span class="route"><span class="nb">${esc(train.origin)}</span> <span class="nb">→ ${esc(train.destination)}</span></span></h1><p class="meta"><span class="meta-line">${clockText(origin.departure,origin.departure_day_offset)} → ${clockText(dest.arrival,dest.arrival_day_offset)} · ${ko?`총 ${stops.length}개 역`:`${stops.length} stops`}</span><span class="meta-sep"> · </span><span class="meta-line">${ko?`${range(w.from,w.to)} · 운행 기록 ${ok.length}건`:`Data for ${ok.length} ${ok.length===1?'run':'runs'} from ${range(w.from,w.to)}`}</span></p>${stats}</div></div>${glyphHTML(stops,stationIndex)}</div>`;
@@ -59,6 +60,7 @@ export function renderTrain(train,allDays=[],stationIndex=null,locale='en',hasSt
  const finals=ok.map(finalFor).filter(v=>v!=null);
  const currentKeys=stopKeys(stops);
  const byStop=stops.map((s,i)=>{const key=currentKeys[i],pairs=ok.map(r=>[valuesFor(r,key),r.date]).filter(p=>p[0]!=null),values=pairs.map(p=>p[0]),dates=pairs.map(p=>p[1]),within=values.filter(v=>v<=5).length;return {...s,key,values,dates,within,share:values.length?within/values.length:null};});
+ // The percentile limits drawing space only. Outlying reports remain in the statistics and are marked at the axis edge, not dropped.
  const all=byStop.flatMap(s=>s.values),max=Math.max(15,Math.ceil((percentile(all,.97)||15)/5)*5),x=v=>(Math.max(-2,Math.min(max,v))+2)/(max+2)*100;
  // The typical delay when late means nothing for a train with no late arrival, so the line leaves it out.
  const late=w.typical_late_delay==null?'':ko?` · 5분 넘게 늦은 도착의 <span class="nb">지연 시간 중앙값 <b>${minutes(w.typical_late_delay)}</b></span>`:` · <b>${delay(w.typical_late_delay)}</b> typical delay when late`;

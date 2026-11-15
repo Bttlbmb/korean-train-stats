@@ -2,7 +2,8 @@ import * as en from './utils.js';
 
 export const korean = locale => locale === 'ko';
 let stationNames = {};
-// Korean names come from the existing station_ko fields, never reverse transliteration.
+// The build configures this map before rendering; the Korean front page restores its embedded copy before a browser refresh.
+// Source Korean names cover historical stations too. localizeTrain changes labels only, leaving IDs and number/filter values intact.
 export const configureKoreanStations = names => { stationNames = names; };
 export const stationName = name => stationNames[name] || name;
 export function localizeTrain(train) {

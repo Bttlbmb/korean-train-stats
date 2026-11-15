@@ -15,6 +15,7 @@ bindDayStrip();
 // On a phone a stop's track is 78 to 130 px for a 17-minute axis, so the stacks of days with the same delay run into their neighbors. This lays the dots out again with the track's real width (a tighter grid and, under 100 px, smaller dots):
 // a stack keeps its minute unless a neighbor needs the room, and no dot crosses the dashed 5-minute line or leaves the track. The .out dots (later than the axis, with an arrow) stay at the track's end, in one stack of up to 5 arrows 5.5 px apart at every width (an arrowhead is about 5 px tall) whose extra columns step inward, and the other dots keep clear of them. The built page has the unpacked layout (see dotsHTML in train.js).
 function packRailDots(){
+ // Recompute from the original percentage stored in data-x, not the previous packed pixel position, so resizing does not accumulate drift.
  for(const track of document.querySelectorAll('.rail-track')){
   const dots=[...track.querySelectorAll('.rail-dot:not(.out)')],outs=[...track.querySelectorAll('.rail-dot.out')];if(!dots.length&&!outs.length)continue;
   const W=track.clientWidth,[pitch,perColumn,size]=W<100?[4.2,7,3.8]:W<260?[4.8,6,4.5]:[5.5,5,4.5],limit=track.querySelector('.rail-limit'),line=limit?parseFloat(limit.style.left)/100*W:W;

@@ -1,4 +1,5 @@
 // GitHub Pages serves /404.html for missing addresses in either language.
+// Its address can be arbitrarily deep, so fallback navigation stays root-relative rather than inheriting that missing path.
 if(location.pathname.startsWith('/ko/')){
  document.documentElement.lang='ko';
  document.title='페이지를 찾을 수 없습니다 · Korean Train Stats';

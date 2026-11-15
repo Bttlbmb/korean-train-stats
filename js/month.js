@@ -6,12 +6,14 @@ import {localeUtils,localizeTrain,stationName} from './locale.js';
 export function monthFigures(key,documents){
  const [year,month]=key.split('-').map(Number),length=new Date(Date.UTC(year,month,0)).getUTCDate();
  const days=[];
+ // A missing archive file makes the month incomplete; a present day with zero countable arrivals is still a calendar day.
  for(let n=1;n<=length;n++){
   const iso=`${key}-${String(n).padStart(2,'0')}`,day=documents.get(iso);
   if(!day)return null;
   days.push(day);
  }
  const buckets=Array(5).fill(0);for(const day of days)day.buckets.forEach((n,i)=>buckets[i]+=n);
+ // Per-day top-ten lists suffice for the monthly top ten: an omitted entry already has at least ten preceding entries that day.
  const stops=buckets.reduce((a,b)=>a+b,0),most_delayed=days.flatMap(day=>day.most_delayed.map(t=>({...t,date:day.date})))
   .sort((a,b)=>b.delay-a.delay||a.date.localeCompare(b.date)||a.departure.localeCompare(b.departure)||a.number-b.number||a.type.localeCompare(b.type)).slice(0,10);
  return {days,buckets,stops,share_punctual:stops?buckets[0]/stops:null,most_delayed};

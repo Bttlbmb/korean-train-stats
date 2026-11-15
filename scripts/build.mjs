@@ -19,6 +19,7 @@ const meta=read('meta.json'),{days}=read('days.json'),stations=read('stations/in
 const trainData=new Map(fs.readdirSync(path.join(root,'data/trains')).sort().map(file=>[file.slice(0,-5),read('trains/'+file)]));
 const dayData=new Map(fs.readdirSync(path.join(root,'data/days')).sort().map(file=>[file.slice(0,-5),read('days/'+file)]));
 const names={};
+// Historical day pages can reference stations absent from current train files; build the name table from both archive-wide and current sources.
 for(const s of stations.stations)if(s.name_ko)names[s.name]=s.name_ko;
 for(const train of trainData.values())for(const t of train.timetables)for(const s of t.stops)if(s.station_ko)names[s.station]=s.station_ko;
 // Fail clearly instead of silently publishing untranslated historical station names.
@@ -29,8 +30,10 @@ const missing=[...required].filter(name=>!names[name]);
 if(missing.length)throw Error('Missing Korean station names: '+missing.join(', '));
 configureKoreanStations(names);
 const write=(file,html)=>{fs.mkdirSync(path.dirname(path.join(out,file)),{recursive:true});fs.writeFileSync(path.join(out,file),html);};
+// out is a disposable build directory. Recreate it so removed pages cannot survive as stale published links.
 fs.rmSync(out,{recursive:true,force:true});
 const leaveOut=new Set(['_site','artifacts','node_modules','docs','scripts','README.md','AGENTS.md','BUILD_NOTES.md']);
+// Apply exclusions recursively as well as at the root; build output must contain public assets, not worktrees, guides, or local artifacts.
 const publish=name=>!name.startsWith('.')&&!leaveOut.has(name);
 for(const name of fs.readdirSync(root))if(publish(name)&&path.join(root,name)!==out)fs.cpSync(path.join(root,name),path.join(out,name),{recursive:true,filter:source=>publish(path.basename(source))});
 const alternate=address=>`  <link rel="alternate" hreflang="en" href="${SITE}${address}">\n  <link rel="alternate" hreflang="ko" href="${SITE}ko/${address}">\n  <link rel="alternate" hreflang="x-default" href="${SITE}${address}">`;
@@ -42,6 +45,7 @@ const languageSwitch=(address,ko)=>`<a class="language-switch" lang="${ko?'en':'
 const pagesNav=(ko,address='',front=false,up='')=>`<nav class="header-nav${front?'':' desktop-nav'}" aria-label="${ko?'페이지':'Pages'}">${[['trains/',ko?'전체 열차':'All trains'],['stations/',ko?'전체 역':'All stations'],['journeys/',ko?'전체 구간':'All journeys']].map(([to,label])=>`<a class="nav-btn" href="${up}${ko?'ko/':''}${to}"${address===to?' aria-current="page"':''}>${label}</a>`).join('')}</nav>`;
 const stationJSON=JSON.stringify(names).replaceAll('<','\\u003c');
 function page(address,info,main,locale='en',front=false,dataset=null){
+ // Links inside renderers are relative to the site root. The base accounts for language/depth; the skip link names this page explicitly.
  const ko=locale==='ko',local=(ko?'ko/':'')+address,home=ko?'ko/':'./';
  return `<!doctype html>
 <html lang="${locale}"><head>
@@ -77,6 +81,7 @@ write('ko/index.html',page('',{title:'한국 열차 도착 지연 통계 · Kore
 // Stations with a page, by ID and by English name, so a stop name on a train or day page can link to it.
 const callsAt=stationRows(trainData.values()),stationIds=new Map(stations.stations.filter(s=>stationInfo(s,callsAt.get(s.id),month)).map(s=>[s.name,s.id])),pageIds=new Set(stationIds.values());
 const addresses=[''],trainPages=new Set(),rows=[];
+// Eligibility determines both emitted pages and historical links. Old day records remain readable when their train no longer has a page.
 for(const [id,train] of trainData){
  if(!pageInfo(train))continue;
  const address=`train/${id}/`;
@@ -136,7 +141,8 @@ let fallback=fs.readFileSync(path.join(root,'404.html'),'utf8');
 fallback=fallback.replace('</head>','<script type="module" src="/js/not-found.js"></script></head>').replace('</main>','<p><a href="/ko/">한국어 첫 화면</a></p></main>');
 write('404.html',fallback);
 write('ko/app.html',fs.readFileSync(path.join(root,'app.html'),'utf8').replace('<html lang="en">','<html lang="ko">').replace('<head>','<head>\n  <base href="../">').replace('`train/${train}/`','`ko/train/${train}/`').replace('`day/${day}/`','`ko/day/${day}/`').replace(":'./'",":'ko/'").replace('href="./"','href="ko/"'));
-// Sitemap languages share each page's stable identity. Only addresses actually built are listed.
+// Replace the exporter's English sitemap with actual emitted addresses, including directory pages and both languages.
+// Daily archives and complete months retain their own dates; rolling pages use last_complete_date, not the observation timestamp.
 const stamp=meta.last_complete_date?`<lastmod>${meta.last_complete_date}</lastmod>`:'';
 const sitemap='<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'+addresses.flatMap(address=>['', 'ko/'].map(prefix=>`<url><loc>${SITE}${prefix}${address}</loc>${/^day\//.test(address)?`<lastmod>${address.split('/')[1]}</lastmod>`:/^\d{4}-\d{2}\/$/.test(address)?`<lastmod>${[...dayData.keys()].filter(iso=>iso.startsWith(address.slice(0,7))).at(-1)}</lastmod>`:stamp}</url>`)).join('\n')+'\n</urlset>\n';
 write('sitemap.xml',sitemap);
