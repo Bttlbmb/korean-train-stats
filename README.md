@@ -8,7 +8,7 @@ The header links to three directories:
 
 - **All trains:** train numbers, routes, and punctuality, with filters by number, type, first station, and last station.
 - **All stations:** station-name search, service types, train counts, and punctuality.
-- **All journeys:** a catalogue of journeys with at least 40 services, plus a search for direct journeys between two stations. Clear segments of circular services are included; a selected journey’s departures can be filtered by train number.
+- **All journeys:** a catalogue of journeys with at least 40 services, plus a search for direct journeys between two stations. Each of those journeys has its own page (`journey/seoul-to-busan/`) with its figures, the delay by departure hour, and a table of its trains. Clear segments of circular services are included; a selected journey’s departures can be filtered by train number.
 
 The build supplies English and Korean versions. Korean pages use `/ko/`, and the language switch keeps the current page and list filters.
 

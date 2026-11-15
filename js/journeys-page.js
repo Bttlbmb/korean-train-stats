@@ -103,7 +103,8 @@ function start(data){
  more.addEventListener('click',()=>{all=true;limit();rows.filter(r=>!r.hidden)[cap]?.querySelector('a')?.focus();});
  function limit(){
   let seen=0;for(const row of rows)row.classList.toggle('over',!all&&!row.hidden&&++seen>cap);
-  const n=rows.filter(r=>!r.hidden).length;more.hidden=all||n<=cap;more.textContent=body.dataset.more.replace('{n}',format(n));
+  const n=rows.filter(r=>!r.hidden).length;// A chosen pair is answered by the panel, so the table's own Show all button stays away with the table.
+  more.hidden=all||n<=cap||!!(value(from)&&value(to));more.textContent=body.dataset.more.replace('{n}',format(n));
  }
  // Offer only the stations that still lead to a journey, given the other station.
  function fill(select,list,current){
@@ -138,7 +139,8 @@ function start(data){
   const train=trainNumberKey(number),matches=[];
   for(const row of result.querySelectorAll('.rank-row')){row.hidden=!!train&&trainNumberKey(row.dataset.num)!==train;if(!row.hidden)matches.push(row);row.classList.remove('over');}
   matches.forEach((row,i)=>row.classList.toggle('over',!trainsAll&&i>=ROW_CAP));
-  result.querySelector('#journeys-trains-count').textContent=(ko?'전체 {total}편 중 {n}편':'{n} of {total} trains').replace('{n}',format(matches.length)).replace('{total}',format(result.querySelectorAll('.rank-row').length));
+  const total=result.querySelectorAll('.rank-row').length;
+  result.querySelector('#journeys-trains-count').textContent=(ko?'전체 {total}편 중 {n}편':`{n} of {total} ${total===1?'train':'trains'}`).replace('{n}',format(matches.length)).replace('{total}',format(total));
   result.querySelector('#journeys-trains-empty').hidden=matches.length>0;
   const button=result.querySelector('.trains-more');
   if(button){button.hidden=trainsAll||matches.length<=ROW_CAP;button.textContent=ko?`전체 ${format(matches.length)}편 보기`:`Show all ${format(matches.length)} trains`;}

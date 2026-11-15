@@ -19,8 +19,8 @@ const {renderDay,pageInfo:dayInfo}=await import(pathToFileURL(path.join(root,'js
 const {trainRow,renderTrains,pageInfo:trainsInfo}=await import(pathToFileURL(path.join(root,'js/trains.js')));
 const {stationRows,renderStation,pageInfo:stationInfo}=await import(pathToFileURL(path.join(root,'js/station.js')));
 const {stationList,renderStations,pageInfo:stationsInfo}=await import(pathToFileURL(path.join(root,'js/stations.js')));
-const {ROW_CAP,stationSearchKey}=await import(pathToFileURL(path.join(root,'js/utils.js')));
-const {journeyData,journeyList,journeysAt,journeyCount:pairCount,pairStats,resultHTML,renderJourneys,pageInfo:journeysInfo,MIN_TRAINS}=await import(pathToFileURL(path.join(root,'js/journeys.js')));
+const {ROW_CAP,pct0,stationSearchKey}=await import(pathToFileURL(path.join(root,'js/utils.js')));
+const {journeyData,journeyList,journeysAt,journeyCount:pairCount,pairStats,resultHTML,renderJourneys,renderJourney,journeyPageInfo,journeyPath,hourBuckets,pageInfo:journeysInfo,MIN_TRAINS}=await import(pathToFileURL(path.join(root,'js/journeys.js')));
 const read=file=>JSON.parse(fs.readFileSync(data+file,'utf8')),stations=read('stations/index.json'),days=read('days.json').days;
 const problems=[];let pages=0,empty=0;
 // Station lookups accept common spelling and suffix variants in either language.
@@ -134,7 +134,7 @@ let stationPages=0;
  }
 }
 
-let journeyCount=0;
+let journeyCount=0,journeyPages=0;
 {
  const fail=why=>problems.push(`all-journeys page: ${why}`),month=read('windows/month.json'),trains=fs.readdirSync(data+'trains').map(file=>read('trains/'+file));
  const stops=journeyData(trains,stations.stations),list=journeyList(stops);journeyCount=list.length;
@@ -148,17 +148,17 @@ let journeyCount=0;
   const tmap=new Map(train.timetables.map(t=>[t.id,t])),runs=train.runs.filter(r=>r.status==='ok'&&r.date>=w.from&&r.date<=w.to);
   for(let j=1;j<current.length;j++){
    if(current[j].arrival==null)continue;
-   let reported=0,within=0;
+   let reported=0,within=0,w10=0,w15=0;
    const visit=ids.slice(0,j).filter(id=>id===ids[j]).length;
-   for(const r of runs){const stop=tmap.get(r.timetable).stops.filter(x=>x.station_id===ids[j])[visit],d=stop?.arrival!=null?r.delays?.[stop.ordinal]??null:null;if(d!=null){reported++;if(d<=5)within++;}}
+   for(const r of runs){const stop=tmap.get(r.timetable).stops.filter(x=>x.station_id===ids[j])[visit],d=stop?.arrival!=null?r.delays?.[stop.ordinal]??null:null;if(d!=null){reported++;if(d<=5)within++;if(d<=10)w10++;if(d<=15)w15++;}}
    for(let i=0;i<j;i++){
     if(current[i].departure==null||ids[i]===ids[j])continue;
     const dep=minute(current[i].departure,current[i].departure_day_offset),arr=minute(current[j].arrival,current[j].arrival_day_offset);
     if(arr<dep)continue;
-    const k=ids[i]+'|'+ids[j];segments.set(k,segments.has(k)?null:{dep,arr,reported,within});
+    const k=ids[i]+'|'+ids[j];segments.set(k,segments.has(k)?null:{dep,arr,reported,within,w10,w15});
    }
   }
-  for(const [k,s] of segments)if(s){const p=pairs.get(k)||pairs.set(k,{ids:new Set(),reported:0,within:0,details:new Map()}).get(k);p.ids.add(train.id);p.reported+=s.reported;p.within+=s.within;p.details.set(train.id,s);}
+  for(const [k,s] of segments)if(s){const p=pairs.get(k)||pairs.set(k,{ids:new Set(),reported:0,within:0,w10:0,w15:0,details:new Map()}).get(k);p.ids.add(train.id);p.reported+=s.reported;p.within+=s.within;p.w10+=s.w10;p.w15+=s.w15;p.details.set(train.id,s);}
  }
  const byName=new Map(stations.stations.map(s=>[s.name,s.id]));
  // Every journey the page can build for a chosen station: the same pairs, trains, and arrivals as the direct count, a share only from 10 trains, and the same rows when narrowed to one station.
@@ -176,7 +176,7 @@ let journeyCount=0;
   try{
    assert.equal(actual.trains.length,expected.ids.size);assert.equal(new Set(actual.trains.map(t=>t.id)).size,actual.trains.length);
    assert.equal(actual.reported,expected.reported);assert.equal(actual.within,expected.within);
-   for(const {id,dep,arr,reported,within} of actual.trains)assert.deepEqual({dep,arr,reported,within},expected.details.get(id));
+   for(const {id,dep,arr,reported,within} of actual.trains){const {w10,w15,...own}=expected.details.get(id);assert.deepEqual({dep,arr,reported,within},own);}
    assert.equal(actual.typical,row.mins);
   }catch(error){fail(`${row.from} → ${row.to}: loop pair differs from source: ${error.message}`);}
  }
@@ -204,8 +204,36 @@ let journeyCount=0;
   if(!info||info.title.length>90||info.description.length>220)fail(`${locale}: no title and description, or they are too long`);
   const panel=resultHTML(pairStats(stops,0,1),stops.stations[0],stops.stations[1],locale).replace(/<[^>]*>/g,' ').match(/undefined|NaN|\bnull\b/);if(panel)fail(`${locale} panel contains "${panel[0]}"`);
  }
+
+ // A page for each listed journey, built from the detailed data: its headline within 5, 10 and 15 minutes must match the direct recount, its table must have a row per train, its hidden hour table must add up to
+ // the journey's trains and arrivals, every address must be unique, and every link to a journey page on the all-journeys page must reach one of them.
+ {
+  const detail=journeyData(trains,stations.stations,true),at=new Map(detail.stations.map((s,i)=>[s[2],i])),addresses=new Set();
+  for(const r of list){
+   const address=journeyPath(r.fromId,r.toId);if(addresses.has(address))fail(`two journeys share the address ${address}`);addresses.add(address);
+   const p=pairs.get(r.fromId+'|'+r.toId),stats=pairStats(detail,at.get(r.fromId),at.get(r.toId)),reverse=journeysAt(detail,at.get(r.toId),at.get(r.fromId))[0]||null;
+   if(!p){fail(`${address}: not in the train files`);continue;}
+   const buckets=hourBuckets(stats);
+   if(buckets.reduce((a,o)=>a+o.trains,0)!==r.trains||buckets.reduce((a,o)=>a+o.reported,0)!==r.arrivals)fail(`${address}: the hours add up to ${buckets.reduce((a,o)=>a+o.trains,0)} trains and ${buckets.reduce((a,o)=>a+o.reported,0)} arrivals, not ${r.trains} and ${r.arrivals}`);
+   if(stats.within15!==p.w15||stats.bands[0]+stats.bands[1]!==p.w10)fail(`${address}: within 10 or 15 minutes differs from the train files`);
+   for(const locale of ['en','ko']){
+    const html=renderJourney({row:r,stats,reverse},month,locale),info=journeyPageInfo(r,month,locale);
+    const bad=html.replace(/<[^>]*>/g,' ').match(/undefined|NaN|\bnull\b/);if(bad)fail(`${address} (${locale}): text contains "${bad[0]}"`);
+    if((html.match(/<tr data-type=/g)||[]).length!==r.trains)fail(`${address} (${locale}): the table does not have a row for each of ${r.trains} trains`);
+    const heads=locale==='ko'?[`10분 이내 ${pct0(p.w10/p.reported)}`,`15분 이내 ${pct0(p.w15/p.reported)}`,`<b>${pct0(p.within/p.reported)}</b>`]:[`${pct0(p.w10/p.reported)} within 10 min`,`${pct0(p.w15/p.reported)} within 15 min`,`<b>${pct0(p.within/p.reported)}</b>`];
+    for(const text of heads)if(!html.includes(text))fail(`${address} (${locale}): the headline lacks "${text}"`);
+    // The cells read "5 trains" and "98 arrivals" (Korean 열차 5편 and 98건), so take the number out of the text.
+    const sums=[...html.matchAll(/<tr><td>\d\d:00<\/td><td>\D*([\d,]+)[^<]*<\/td><td>\D*([\d,]+)[^<]*<\/td>/g)].map(m=>[+m[1].replace(/,/g,''),+m[2].replace(/,/g,'')]);
+    if(sums.reduce((a,m)=>a+m[0],0)!==r.trains||sums.reduce((a,m)=>a+m[1],0)!==r.arrivals)fail(`${address} (${locale}): the hidden hour table does not add up`);
+    if(reverse&&!html.includes('other-direction'))fail(`${address} (${locale}): no link to the other direction`);
+    if(!info||info.title.length>80||info.description.length>220)fail(`${address} (${locale}): no title and description, or they are too long`);
+    journeyPages++;
+   }
+  }
+  for(const locale of ['en','ko'])for(const m of renderJourneys(list,month,locale).matchAll(/href="(?:ko\/)?(journey\/[^"]+)"/g))if(!addresses.has(m[1]))fail(`${locale}: the all-journeys page links to ${m[1]}, which has no page`);
+ }
 }
-console.log(`${pages} train pages rendered, ${empty} without a run in the past month, ${dayPages} day pages rendered, ${stationPages} station pages rendered, ${journeyCount} journeys listed, ${problems.length} problems.`);
+console.log(`${pages} train pages rendered, ${empty} without a run in the past month, ${dayPages} day pages rendered, ${stationPages} station pages rendered, ${journeyCount} journeys listed, ${journeyPages} journey pages rendered, ${problems.length} problems.`);
 for(const line of problems.slice(0,20))console.log('  '+line);
 if(problems.length>20)console.log(`  and ${problems.length-20} more`);
 process.exit(problems.length?1:0);

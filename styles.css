@@ -151,7 +151,7 @@ header{flex-wrap:wrap}.header-end{margin-left:auto;display:flex;align-items:cent
 @media(max-width:640px){.desktop-nav{display:none}}
 /* A link that looks like the text around it: no colour, no underline, no change on hover. The pointer and the keyboard focus ring still show it. */
 .plain-link{color:inherit;text-decoration:none}
-/* All-journeys page: the panel for a chosen pair of stations (a line with the share, then rank rows), and the table's compact cells (typical time and train count move into the second line on phones). */
+/* All-journeys page: the panel for a chosen pair of stations (a line with the share, then rank rows), and the table's compact cells (scheduled time and train count move into the second line on phones). */
 .jres{border:1px solid var(--line);border-radius:8px;padding:12px 16px 14px;margin:16px 0 4px;background:var(--surface)}.jres[hidden]{display:none}
 .jr-fig{margin:0 0 8px;font-size:14px;line-height:1.5;color:var(--muted)}.jr-fig b{color:var(--ink);font-weight:600}
 #journeys-note{margin:12px 0 0}
@@ -174,3 +174,18 @@ header{flex-wrap:wrap}.header-end{margin-left:auto;display:flex;align-items:cent
 .station-list li.active{background:var(--accent-soft)}.station-list li[aria-selected=true]{font-weight:500}.station-list li.none{color:var(--muted);cursor:default}
 @media(max-width:700px){.station-input{min-height:44px;font-size:15px;min-width:0}.station-list li{padding:11px 12px;font-size:15px}}
 @media(max-width:700px){.number-field{grid-column:1/-1;max-width:none}}
+/* Journey page (journey/<from>-to-<to>/): the link to the other direction, the stacked delay chart by departure hour, and the table's single-line times on phones (the separate cells stay for screen readers). */
+.other-direction{margin-top:2px}.other-direction a{color:var(--accent)}
+.hours{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:6px;align-items:end;padding-top:6px}
+.hour-col{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0}
+.hour-pct,.hour-label{font-size:12px;color:var(--ink)}.hour-n{font-size:12px;color:var(--muted)}
+.hour-bar{display:flex;flex-direction:column-reverse;width:100%;max-width:40px;height:104px;border-radius:3px;overflow:hidden;background:var(--line-soft)}
+.hour-bar i{display:block;flex:none;width:100%}.hour-bar .k0{background:var(--ontime)}.hour-bar .k1{background:var(--d2)}.hour-bar .k2{background:var(--d3)}.hour-bar .k3{background:var(--d4)}.hour-bar .k4{background:var(--d5)}
+.hour-axis{display:flex;justify-content:space-between;flex-wrap:wrap;gap:2px 12px;margin-top:8px;font-size:12px;color:var(--muted)}
+@media(max-width:560px){.hours{gap:3px}}
+.journey-table td.times{display:none}
+@media(max-width:700px){.journey-table td.dep,.journey-table td.arr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}.journey-table td.times{display:block}}
+/* The all-journeys panel: its figure line and, for a journey that has a page, an outlined button to it at the top right (a short label on phones). */
+.jr-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px 16px}.jr-top .jr-fig{flex:1 1 0;min-width:0}
+.jr-top .nav-btn{gap:7px;flex:none}.jr-top .nav-btn svg{flex:none;width:13px;height:13px;display:block}.jr-top .sm{display:none}
+@media(max-width:560px){.jr-top .lg{display:none}.jr-top .sm{display:inline}}

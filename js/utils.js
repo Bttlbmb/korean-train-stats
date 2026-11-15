@@ -28,7 +28,8 @@ const DELAY_SCALE=[['ontime','Within 5 min'],['d2','6–10'],['d3','11–20'],['
 export const MIN_DAYS = 10;
 // A share with its bar, for a list row or a table cell.
 export const bar = s => `<span class="v${s==null?' dash':''}">${s==null?'—':pct0(s)}</span><span class="share-bar"><i style="width:${s==null?0:Math.round(s*100)}%"></i></span>`;
-export const shareLegend = (cls='') => `<div class="legend${cls?' '+cls:''}"><span class="legend-label">Share of stops:</span><span><i class="swatch" style="background:var(--ontime-mark)"></i>Within 5 min</span><span><i class="swatch" style="background:var(--d3)"></i>More than 5 min late</span></div>`;
+// The noun names the record the share counts: every list page says stops, but the journey pages measure arrivals at one station.
+export const shareLegend = (cls='',noun='stops') => `<div class="legend${cls?' '+cls:''}"><span class="legend-label">Share of ${noun}:</span><span><i class="swatch" style="background:var(--ontime-mark)"></i>Within 5 min</span><span><i class="swatch" style="background:var(--d3)"></i>More than 5 min late</span></div>`;
 export const scaleLegend = (extra='') => `<div class="legend">${DELAY_SCALE.map(([k,t])=>`<span><i class="swatch" style="background:var(--${k})"></i>${t}</span>`).join('')}${extra}</div>`;
 export const footer = meta => `<p>Reported arrival delays from Korail, not official statistics. On time means within 5 minutes of schedule.</p><p>Compilation and figures: <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. Korail’s rights in its underlying data are unaffected.</p><p>Train list and station positions: Mikołaj Kuranowski’s GTFS (CC BY 4.0) · Updated ${esc(stamp(meta.generated_at))}</p>`;
 export const tipText=(title,body='')=>`data-tip="${esc(title+'\n'+body)}"`;

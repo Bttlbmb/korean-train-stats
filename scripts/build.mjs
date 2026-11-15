@@ -9,7 +9,7 @@ import {renderFront} from '../js/front.js';
 import {trainRow,renderTrains,pageInfo as trainsInfo} from '../js/trains.js';
 import {stationRows,renderStation,pageInfo as stationInfo} from '../js/station.js';
 import {stationList,renderStations,pageInfo as stationsInfo} from '../js/stations.js';
-import {journeyData,journeyList,renderJourneys,pageInfo as journeysInfo} from '../js/journeys.js';
+import {journeyData,compactJourneyData,journeyList,journeysAt,journeyPath,pairStats,renderJourneys,renderJourney,journeyPageInfo,pageInfo as journeysInfo} from '../js/journeys.js';
 import {monthFigures,renderMonth,pageInfo as monthInfo} from '../js/month.js';
 import {esc} from '../js/utils.js';
 import {localeUtils,configureKoreanStations} from '../js/locale.js';
@@ -108,11 +108,21 @@ if(stationsInfo(stationRowsAll,month)){
  addresses.push('stations/');
 }
 // The all-journeys page lists the journeys that at least 40 trains make; journeys/data.json lets its search answer any pair of stations.
-const journeyStops=journeyData([...trainData.values()],stations.stations),journeyRows=journeyList(journeyStops);
+// Each listed journey also gets a page at journey/<from ID>-to-<to ID>/, built here from the delay bands in the detailed data, so visitors download nothing extra.
+const journeyStops=journeyData([...trainData.values()],stations.stations,true),journeyRows=journeyList(journeyStops);
 if(journeysInfo(journeyRows,month)){
  for(const locale of ['en','ko'])write(`${locale==='ko'?'ko/':''}journeys/index.html`,page('journeys/',journeysInfo(journeyRows,month,locale),renderJourneys(journeyRows,month,locale),locale));
- write('journeys/data.json',JSON.stringify(journeyStops));
+ write('journeys/data.json',JSON.stringify(compactJourneyData(journeyStops)));
  addresses.push('journeys/');
+ const stationAt=new Map(journeyStops.stations.map((s,i)=>[s[2],i])),journeyAddresses=new Set();
+ for(const row of journeyRows){
+  const address=journeyPath(row.fromId,row.toId);
+  if(journeyAddresses.has(address))throw Error(`Two journeys share the address ${address}`);
+  journeyAddresses.add(address);
+  const from=stationAt.get(row.fromId),to=stationAt.get(row.toId),stats=pairStats(journeyStops,from,to),reverse=journeysAt(journeyStops,to,from)[0]||null;
+  for(const locale of ['en','ko'])write(`${locale==='ko'?'ko/':''}${address}index.html`,page(address,journeyPageInfo(row,month,locale),renderJourney({row,stats,reverse},month,locale),locale));
+  addresses.push(address);
+ }
 }
 for(const [iso,day] of dayData){
  if(!dayInfo(day,iso))continue;
@@ -146,4 +156,4 @@ write('ko/app.html',fs.readFileSync(path.join(root,'app.html'),'utf8').replace('
 const stamp=meta.last_complete_date?`<lastmod>${meta.last_complete_date}</lastmod>`:'';
 const sitemap='<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'+addresses.flatMap(address=>['', 'ko/'].map(prefix=>`<url><loc>${SITE}${prefix}${address}</loc>${/^day\//.test(address)?`<lastmod>${address.split('/')[1]}</lastmod>`:/^\d{4}-\d{2}\/$/.test(address)?`<lastmod>${[...dayData.keys()].filter(iso=>iso.startsWith(address.slice(0,7))).at(-1)}</lastmod>`:stamp}</url>`)).join('\n')+'\n</urlset>\n';
 write('sitemap.xml',sitemap);
-console.log(`Built both languages: front page, ${trainPages.size} trains, train list, ${stationPages} stations, station list, ${journeyRows.length} journeys, ${dayData.size} days, and ${monthKeys.length} months.`);
+console.log(`Built both languages: front page, ${trainPages.size} trains, train list, ${stationPages} stations, station list, ${journeyRows.length} journeys with pages, ${dayData.size} days, and ${monthKeys.length} months.`);
