@@ -2,17 +2,20 @@ import {esc,num,pct0,range,shareLegend,bar,empty,ROW_CAP,MIN_DAYS,trainNumberSea
 import {localeUtils,localizeTrain} from './locale.js';
 import {card} from './station.js';
 // The all-journeys page (journeys/): top lists, From and To dropdowns, and a table of every journey that at least 40 trains make, built from the train files.
-// A journey is two stations in order, whichever trains call at both. Its share is the share of arrivals at the second station within 5 minutes.
+// A journey is two distinct stations with one eligible forward segment per train. Its share uses reported arrivals at the destination visit.
 // scripts/build.mjs builds the whole page and writes journeys/data.json, which js/journeys-page.js loads to answer a search for any two stations.
 const GROUPS=['KTX','ITX','Mugunghwa','Other'];
 const group=type=>type.startsWith('ITX')?'ITX':type;
 const minutes=t=>+t.slice(0,2)*60+ +t.slice(3);
-// Match the same visit across timetable versions, even when another stop moves its ordinal.
+// Match station ID + zero-based visit across timetable versions; inserting a stop can change ordinals.
+// Hongseong's departure is visit 0 and its return arrival is visit 1, so matching only the station would lose the arrival.
 const visits=stops=>{const seen=new Map();return stops.map(s=>{const n=seen.get(s.station_id)||0;seen.set(s.station_id,n+1);return `${s.station_id}#${n}`;});};
 // A journey is listed from 40 trains; a share is shown from 10 trains, so a search for a rare pair still gets its trains, but no overall share.
 export const MIN_TRAINS=40,SHOW_TRAINS=10;
-// Each train's stops in the current timetable as [station index, arrival minute, departure minute, reported arrivals, arrivals within 5 minutes], where a minute counts from midnight of the first day.
-// Repeated stations keep separate calls, so a loop's final arrival is not matched to its starting departure.
+// Build/browser contract: stations = [[English name, Korean name], ...]; trains = [[id, number, type, calls], ...].
+// A call is [station index, arrival minute|null, departure minute|null, reported arrivals, arrivals within 5 minutes].
+// Indexes belong to this payload, not public station IDs. Minutes include day offsets from the train's starting midnight.
+// The latest timetable supplies the route and times; each run supplies delay values through its own timetable and ordinal.
 export function journeyData(trains,stations){
  const byId=new Map(stations.map(s=>[s.id,s])),index=new Map(),names=[],rows=[];
  const at=id=>{let i=index.get(id);if(i==null){i=names.length;index.set(id,i);const s=byId.get(id);names.push([s?.name??id,s?.name_ko||s?.name||id]);}return i;};
@@ -24,6 +27,7 @@ export function journeyData(trains,stations){
    let reported=0,within=0;
    if(s.arrival!=null)for(const r of runs){
     const stop=tmap.get(r.timetable)?.get(keys[i]),d=stop?.arrival!=null?r.delays?.[stop.ordinal]??null:null;
+    // Zero is a valid report; null and starting departures never enter either arrival count.
     if(d!=null){reported++;if(d<=5)within++;}
    }
    return [at(s.station_id),s.arrival==null?null:minutes(s.arrival)+(s.arrival_day_offset||0)*1440,s.departure==null?null:minutes(s.departure)+(s.departure_day_offset||0)*1440,reported,within];
@@ -34,6 +38,7 @@ export function journeyData(trains,stations){
 }
 // One forward segment per train and pair of distinct stations. If several visit combinations fit,
 // omit only that ambiguous pair; keep the train's other journeys. Search options use this same rule.
+// Traverse the explicit stop order, never wrap from the final call to the first. A → B → A → C makes A → C ambiguous, but B → A valid.
 export function* journeySegments(calls){
  const pairs=new Map();
  for(let i=0;i<calls.length-1;i++){
@@ -41,6 +46,7 @@ export function* journeySegments(calls){
   for(let j=i+1;j<calls.length;j++){
    if(calls[j][1]==null||calls[i][0]===calls[j][0]||calls[j][1]<calls[i][2])continue;
    const key=`${calls[i][0]}:${calls[j][0]}`;
+   // null is a permanent ambiguity marker, including when a third candidate appears; test presence, not truthiness.
    pairs.set(key,pairs.has(key)?null:[i,j]);
   }
  }
@@ -58,6 +64,7 @@ export function pairStats(data,a,b){
   }
  }
  trains.sort((x,y)=>x.dep-y.dep||x.id.localeCompare(y.id));
+ // Keep the same middle-service duration as toRow (upper middle for an even count), so panel and catalogue agree.
  const times=trains.map(t=>t.arr-t.dep).sort((x,y)=>x-y);
  return {trains,reported,within,typical:times.length?times[times.length>>1]:null};
 }
@@ -106,6 +113,7 @@ export function tableRow(r,locale){
 }
 // The panel under the dropdowns for a pair of stations: the share at the second station in one line, then every train by departure from the first station as rank rows (the first 40 until a button shows the rest). from and to are [English name, Korean name].
 export function resultHTML(stats,from,to,locale='en'){
+ // The overall share needs SHOW_TRAINS services; each train row separately needs MIN_DAYS reports at this destination visit.
  const ko=locale==='ko',t=(en,kr)=>ko?kr:en,a=esc(ko?from[1]:from[0]),b=esc(ko?to[1]:to[0]),n=stats.trains.length;
  if(!n)return `<p class="meta">${t(`No train calls at ${a} and then at ${b}.`,`${a}에 정차한 뒤 ${b}에 정차하는 열차가 없습니다.`)}</p>`;
  const enough=n>=SHOW_TRAINS&&stats.reported>0,share=enough?stats.within/stats.reported:null;

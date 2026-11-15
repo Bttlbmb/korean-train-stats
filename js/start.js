@@ -2,10 +2,11 @@ import {esc,num,pct,date,getJSON} from './utils.js';
 import {bindTrainDots} from './dots.js';
 import {renderFront} from './front.js';
 import {localeUtils,configureKoreanStations} from './locale.js';
-// The built front page arrives with yesterday's figures. This refreshes it from the data, so the wording stays true on a day without an update, and makes the dots and bars interactive.
+// The front page arrives with a dated built snapshot. Refresh the figures and date wording, then bind the interactive charts.
 const main=document.querySelector('#main'),locale=document.documentElement.lang==='ko'?'ko':'en',ko=locale==='ko',localized=localeUtils(locale);
 if(ko)configureKoreanStations(JSON.parse(document.querySelector('#korean-stations')?.textContent||'{}'));
 const lateOf=s=>s.late??s.stops-s.punctual;
+// refreshed distinguishes bound charts from the built HTML's still-empty train canvas on the first failed request.
 let barItems=[],loading=false,refreshed=false;
 function bindBars(){
  const bars=document.querySelector('.bars'),read=document.querySelector('#bar-read');if(!bars)return;let active=-1,picked=-1;
@@ -25,12 +26,14 @@ function bindBars(){
  show();
 }
 async function render(){
+ // A retry reuses this path; prevent overlapping requests and duplicate chart bindings.
  if(loading)return;
  loading=true;
  const retrying=document.activeElement?.id==='retry';
  const retry=document.querySelector('#retry');if(retry)retry.disabled=true;
  main.setAttribute('aria-busy','true');
  try{
+  // A failure in any file must retain the built figures and footer as one dated snapshot, not show partial new data.
   const [meta,{days},y,m]=await Promise.all([getJSON('meta.json'),getJSON('days.json'),getJSON('windows/yesterday.json'),getJSON('windows/month.json')]);
   const front=renderFront(meta,days,y,m,locale);
   main.innerHTML=front.html;barItems=front.barItems;
@@ -40,7 +43,7 @@ async function render(){
   refreshed=true;
   if(retrying)main.focus({preventScroll:true});
  }catch(err){
-  // Keep the built figures and name their dates, even when the page was built on an earlier day.
+  // The fallback is the built DOM, not localStorage. Relative labels such as "yesterday" may now be stale.
   const periods=[...main.querySelectorAll('.period')];
   periods.forEach((section,i)=>{
    const {from,to}=section.dataset;
@@ -51,6 +54,7 @@ async function render(){
    // The built canvas has no pixels until its train data loads; keep the accessible data table instead.
    const dots=main.querySelector('.dot-field');if(dots)dots.hidden=true;
    const bars=main.querySelector('.bars');
+   // The bars are already real links. Without the fetched chart data, expose those links to native keyboard navigation.
    if(bars){bars.removeAttribute('tabindex');bars.setAttribute('role','group');bars.setAttribute('aria-label',ko?'날짜별 도착 비율. 막대를 선택하면 해당 날짜의 페이지가 열립니다.':'Daily punctuality. Select a bar to open its day page.');
     bars.querySelectorAll('a').forEach(link=>{link.tabIndex=0;link.setAttribute('aria-label',localized.date(link.getAttribute('href').split('/').at(-2),true));});}
   }

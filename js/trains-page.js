@@ -1,7 +1,8 @@
 // The all-trains page (js/trains.js), a station page (js/station.js), and the all-stations page (js/stations.js) arrive built with every row in their table. This shows the controls and makes the table filterable and sortable.
 // Station pages have a To select (labelled Toward) and train-number search; all-stations pages have a station-name search. Each control allows it to be missing.
 // A row's data-type can list several types (a station is served by more than one).
-// The choices live in the address (?types=KTX,ITX&from=Busan&to=Seoul&sort=dep_asc; on a station page ?types=KTX&to=Busan; on the all-stations page ?q=dae&types=KTX), so a shared link or Back restores them. replaceState keeps Back from stepping through them.
+// URL keys: types/from/to/sort plus number for train tables, or q for the station directory. Controls may be absent on a shared consumer.
+// replaceState avoids a history entry per edit; a shared URL or Back from a train restores the current choices, including language switches.
 import {stationSearchKey,trainNumberKey} from './utils.js';
 const ko=document.documentElement.lang==='ko';
 const form=document.querySelector('#trains-filters');
@@ -23,7 +24,8 @@ if(form){
  // A station with one train type has no type boxes, and every row stays.
  const ticked=()=>boxes.length?new Set(boxes.filter(b=>b.checked).map(b=>b.value)):{has:()=>true};
  const typed=(on,row)=>row.dataset.type.split(' ').some(type=>on.has(type)),words=()=>q?stationSearchKey(q.value):'';
- // Offer only the stations that still lead to a train, given the ticked types and the other station.
+ // Station options depend on type and the other endpoint, not a partially entered train number.
+ // Apply number matching afterward so typing a number does not silently clear the station choices.
  function fill(select,own,other,otherKey){
   if(!select)return;
   const on=ticked(),found=new Set();
@@ -93,7 +95,7 @@ if(form){
  const [k,d]=(query.get('sort')||'').split('_');
  if(heads.some(h=>h.dataset.key===k)&&(d==='asc'||d==='desc')){key=k;dir=d==='asc'?'ascending':'descending';}
  options();
- // options() clears a station no train leaves from or reaches, so a bad address shows all trains.
+ // Unsupported station values are cleared; valid type, number, and name filters still apply.
  apply();sort();sync();
  form.hidden=false;status.hidden=false;
 }

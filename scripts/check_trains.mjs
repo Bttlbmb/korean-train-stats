@@ -7,7 +7,7 @@
 // A station page has a row for each call of each train (and counts each train once, though a loop train calls twice), each linking to its train page and showing the share its figures give, and every reported arrival
 // in the train files lands on exactly one station page. The all-stations page has one row for each station page, each linking to it, with the share its figures give.
 // The all-journeys page has one row for each journey that at least 40 trains make, with the trains, arrivals, and share that the train files give when counted again directly,
-// and the panel for a pair of stations gives the same figures.
+// and the panel for a pair of stations gives the same figures. Synthetic loop cases exercise failures the current export may not contain.
 // Usage: node scripts/check_trains.mjs [data-folder]   (default: data)
 import fs from 'node:fs';
 import path from 'node:path';
@@ -29,8 +29,9 @@ for(const [query,name] of [['Haengshin','Haengsin'],['Cheonan Asan','Cheonan-Asa
 }
 if(stationSearchKey('역곡')!=='역곡')problems.push('station search: removed 역 inside a station name');
 if(stationSearchKey('Seoul')===stationSearchKey('Busan'))problems.push('station search: collapsed different station names');
-// A repeated arrival must survive ordinal changes, exclude missing values, and belong to the correct visit.
-// A → B → X → A → C has two A → C segments; only that pair is ambiguous.
+// These expectations are handwritten, not derived from journeySegments: they protect against a shared mistake in lists and panels.
+// The current A → B → X → A → C inserts X into the older timetable, shifting return-arrival ordinals.
+// It also tests missing/out-of-window/unavailable reports, midnight offsets, and an ambiguous pair alongside a valid direct train.
 {
  const stop=(station,ordinal,arrival,departure,offset=0)=>({station_id:station,station,ordinal,arrival,departure,arrival_day_offset:offset,departure_day_offset:offset});
  const old=[stop('A',0,null,'23:00'),stop('B',1,'23:10','23:11'),stop('A',2,'23:50','23:51'),stop('C',3,'00:20',null,1)];
@@ -137,7 +138,8 @@ let journeyCount=0;
 {
  const fail=why=>problems.push(`all-journeys page: ${why}`),month=read('windows/month.json'),trains=fs.readdirSync(data+'trains').map(file=>read('trains/'+file));
  const stops=journeyData(trains,stations.stations),list=journeyList(stops);journeyCount=list.length;
- // Count each pair again straight from the train files: the trains that call at both stations in the current timetable, and the reported arrivals at the second one, each matched in its own run's timetable.
+ // Independent source-file recount: do not use the packed journeyData or journeySegments output as the expected result.
+ // Match destination visits by filtering source stops, then count only unique eligible source/destination combinations per train.
  const pairs=new Map(),loopIds=new Set(),minute=(time,offset)=>Number(time.slice(0,2))*60+Number(time.slice(3))+(offset||0)*1440;
  for(const train of trains){
   const w=train.windows?.month;if(!w?.runs)continue;

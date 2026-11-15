@@ -2,6 +2,7 @@ import {esc,pct,date,range,hiddenTable,empty,shareLegend,minutes} from './utils.
 import {trainDotsHTML} from './dots.js';
 import {localeUtils} from './locale.js';
 // The front page's markup, from its four data files. It needs no browser, so scripts/build.mjs uses it to build the page and start.js to refresh it.
+// The date attributes let start.js name the retained figures after a failed refresh, without fetched metadata or parsing translated text.
 const period=(eyebrow,big,sentence,sub,vis,w)=>`<section class="period" data-from="${w.from}" data-to="${w.to}"><div class="p-num"><p class="eyebrow">${eyebrow}</p><div class="hero">${big}</div></div><div class="p-text"><h2>${sentence}</h2><p class="sub">${sub}</p></div><div class="p-vis">${vis}</div></section>`;
 // Yesterday in Korea time. "Yesterday" and "past 30 days" are only true when the newest complete day is this date.
 const isFresh=to=>to===new Date(Date.now()-864e5).toLocaleDateString('en-CA',{timeZone:'Asia/Seoul'});

@@ -2,12 +2,15 @@ import {pairStats,resultHTML,journeysAt,journeyCount,tableRow,journeySegments} f
 import {stationSearchKey,trainNumberKey,ROW_CAP} from './utils.js';
 // The all-journeys page (js/journeys.js) arrives built with the busiest journeys in its table. This loads journeys/data.json, offers every station in the From and To boxes, shows the panel for a chosen pair,
 // and rebuilds the table with every journey of a chosen station (any number of trains). If the data cannot load, the page stays as the built list.
-// The choices live in the address (?from=Seoul&to=Busan&sort=share_desc), so a shared link or Back restores them. replaceState keeps Back from stepping through them.
+// The address holds from/to, catalogue sort, and the selected panel's number filter (?from=Seoul&to=Busan&number=1).
+// replaceState avoids one history entry per keystroke; returning from a train page restores this entry's filters.
 const ko=document.documentElement.lang==='ko',locale=ko?'ko':'en';
 const form=document.querySelector('#journeys-filters');
 if(form){
+ // Preserve a requested search in the language link even if data never loads and start() cannot synchronize the controls.
  const languageSwitch=document.querySelector('.language-switch');
  if(languageSwitch){const address=new URL(languageSwitch.href);address.search=location.search;languageSwitch.href=address.href;}
+ // start() installs controls and listeners. Serialize retries so only one successful initialization can run.
  let loading=false;
  async function load(){
   if(loading)return;
@@ -23,7 +26,8 @@ if(form){
    notice?.remove();
    if(retrying)document.querySelector('#journeys-from-search').focus();
   }catch{
-   // A failed request is not an empty route. Keep the built catalogue and the requested URL.
+   // A failed request is not an empty route. Keep the built catalogue and URL; put the warning above the rankings.
+   // URL station values may be arbitrary text, so insert the request with textContent, not HTML.
    if(!notice){notice=document.createElement('div');notice.id='journeys-load-error';notice.className='load-notice';notice.innerHTML=`<p role="status"></p><button type="button">${ko?'다시 시도':'Try again'}</button>`;form.closest('main').querySelector('.train-intro').after(notice);notice.querySelector('button').addEventListener('click',load);}
    const query=new URLSearchParams(location.search),from=query.get('from'),to=query.get('to');
    const requested=from&&to?`${from} → ${to}`:from||to||'';
@@ -41,7 +45,7 @@ function start(data){
  built.forEach((row,i)=>row._i=i);
  let key='',dir='ascending',all=false,number='',trainsAll=false;
  const total=journeyCount(data),stations=data.stations,index=new Map(stations.map((s,i)=>[s[0],i])),label=i=>stations[i][ko?1:0],any=from.options[0].textContent;
- // next[i] holds the stations some train calls at after station i, and before[i] the stations it calls at before.
+ // next/before power both station menus. Use the same segment rule as the results, including loop ambiguity and direction.
  const next=stations.map(()=>new Set()),before=stations.map(()=>new Set());
  for(const [,,,calls] of data.trains)for(const [i,j] of journeySegments(calls)){
   next[calls[i][0]].add(calls[j][0]);before[calls[j][0]].add(calls[i][0]);
@@ -126,7 +130,8 @@ function start(data){
   none.hidden=n>0||!!pair;table.style.display=pair?'none':'';note.hidden=!!(f||o);
   if(pair){result.innerHTML=resultHTML(pairStats(data,index.get(f),index.get(o)),stations[index.get(f)],stations[index.get(o)],locale);result.hidden=false;trainsAll=false;filterTrains();}else{result.hidden=true;number='';sort();}
  }
- // The number filters only this journey's train list; the journey-wide figures retain their full scope.
+ // Number search filters departures, not the route-wide figures or catalogue. Do not recompute the aggregate percentage here.
+ // hidden means a nonmatch; over means a match beyond the current row cap. Reset the latter on each edit, not the former.
  function filterTrains(){
   const input=result.querySelector('#journeys-number');if(!input)return;
   input.value=number;input.classList.toggle('on',!!number.trim());
@@ -167,6 +172,7 @@ function start(data){
   if(languageSwitch){const address=new URL(languageSwitch.href);address.search=location.search;languageSwitch.href=address.href;}
  }
  function setPair(f,o,train=''){
+  // Opening another route link clears its old number; initial URL restore explicitly passes the saved number.
   number=train;
   from.value='';to.value='';options();
   from.value=f;options();to.value=o;options();
@@ -190,7 +196,7 @@ function start(data){
   sort();sync();
  }));
  reset.addEventListener('click',()=>{from.value='';to.value='';number='';key='';dir='ascending';all=false;options();apply();sort();sync();});
- // A journey in a top list or the table opens its panel here instead of reloading the page.
+ // Intercept only an ordinary same-page primary click. Keep real hrefs and native modifier/middle-click behavior for new tabs.
  document.addEventListener('click',event=>{
   if(event.defaultPrevented||event.button||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
   const link=event.target.closest('a.rank-row, #journeys-rows a');if(!link)return;

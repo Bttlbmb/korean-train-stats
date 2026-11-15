@@ -2,9 +2,15 @@
 
 How punctual are South Korea’s trains? This static site shows reported arrival delays for Korail trains at <https://koreantrainstats.com/>.
 
-The front page shows yesterday and the past 30 days. Each dot for yesterday is a train; selecting one opens its page, with a row for every stop and one dot for each recorded day. The all-trains page lists every train with its share of stops within 5 minutes, and filters by train type and station. A station page, such as `station/daejeon/`, shows the station on the map, its most and least punctual trains, and a table of every train that calls there. The all-stations page lists every station with its trains and punctuality. The all-journeys page lists the journeys between two stations that at least 40 trains make, and its search answers any pair of stations. The front page’s header links to both list pages and the all-trains page.
+The front page shows the newest complete day and the past 30 days, with explicit dates when collection is behind. Each daily dot is a train; selecting it opens a page with one row per stop and one dot per recorded day. Station pages, such as `station/daejeon/`, show the station, its punctuality rankings, and the trains that call there.
 
-The build supplies English and Korean versions. Korean pages use `/ko/`, and the language switch keeps the current page and train-list filters.
+The header links to three directories:
+
+- **All trains:** train numbers, routes, and punctuality, with filters by number, type, first station, and last station.
+- **All stations:** station-name search, service types, train counts, and punctuality.
+- **All journeys:** a catalogue of journeys with at least 40 services, plus a search for direct journeys between two stations. Clear segments of circular services are included; a selected journey’s departures can be filtered by train number.
+
+The build supplies English and Korean versions. Korean pages use `/ko/`, and the language switch keeps the current page and list filters.
 
 ## Data and credits
 
@@ -12,4 +18,4 @@ The delays are reported by Korail and collected by a separate private scraper. T
 
 ## Working on the site
 
-The site is plain HTML, CSS, and ES modules. `scripts/build.mjs` writes the train and day pages as HTML with those same modules, and GitHub Actions runs it before publishing. `data/` holds the files that the exporter in the private backend repository writes; do not edit it by hand. [BUILD_NOTES.md](BUILD_NOTES.md) covers the preview, publishing, and decisions, and [AGENTS.md](AGENTS.md) the working rules.
+The site is plain HTML, CSS, and ES modules. `scripts/build.mjs` builds the pages with those same modules, and GitHub Actions validates and builds them before publishing. `data/` holds the private backend exporter’s output; do not edit it by hand. [AGENTS.md](AGENTS.md) owns the working rules. [BUILD_NOTES.md](BUILD_NOTES.md) owns the code map, current behavior, open proposals, checks, and production release procedure.
