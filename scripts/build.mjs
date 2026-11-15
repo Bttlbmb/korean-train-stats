@@ -9,7 +9,7 @@ import {renderFront} from '../js/front.js';
 import {trainRow,renderTrains,pageInfo as trainsInfo} from '../js/trains.js';
 import {stationRows,renderStation,pageInfo as stationInfo} from '../js/station.js';
 import {stationList,renderStations,pageInfo as stationsInfo} from '../js/stations.js';
-import {journeyData,compactJourneyData,journeyList,journeysAt,journeyPath,pairStats,renderJourneys,renderJourney,journeyPageInfo,pageInfo as journeysInfo} from '../js/journeys.js';
+import {journeyData,compactJourneyData,journeyList,journeyPath,pairStats,renderJourneys,renderJourney,journeyPageInfo,pageInfo as journeysInfo} from '../js/journeys.js';
 import {monthFigures,renderMonth,pageInfo as monthInfo} from '../js/month.js';
 import {esc} from '../js/utils.js';
 import {localeUtils,configureKoreanStations} from '../js/locale.js';
@@ -119,8 +119,8 @@ if(journeysInfo(journeyRows,month)){
   const address=journeyPath(row.fromId,row.toId);
   if(journeyAddresses.has(address))throw Error(`Two journeys share the address ${address}`);
   journeyAddresses.add(address);
-  const from=stationAt.get(row.fromId),to=stationAt.get(row.toId),stats=pairStats(journeyStops,from,to),reverse=journeysAt(journeyStops,to,from)[0]||null;
-  for(const locale of ['en','ko'])write(`${locale==='ko'?'ko/':''}${address}index.html`,page(address,journeyPageInfo(row,month,locale),renderJourney({row,stats,reverse},month,locale),locale));
+  const from=stationAt.get(row.fromId),to=stationAt.get(row.toId),stats=pairStats(journeyStops,from,to);
+  for(const locale of ['en','ko'])write(`${locale==='ko'?'ko/':''}${address}index.html`,page(address,journeyPageInfo(row,month,locale),renderJourney({row,stats},month,locale),locale));
   addresses.push(address);
  }
 }

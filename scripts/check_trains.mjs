@@ -211,13 +211,13 @@ let journeyCount=0,journeyPages=0;
   const detail=journeyData(trains,stations.stations,true),at=new Map(detail.stations.map((s,i)=>[s[2],i])),addresses=new Set();
   for(const r of list){
    const address=journeyPath(r.fromId,r.toId);if(addresses.has(address))fail(`two journeys share the address ${address}`);addresses.add(address);
-   const p=pairs.get(r.fromId+'|'+r.toId),stats=pairStats(detail,at.get(r.fromId),at.get(r.toId)),reverse=journeysAt(detail,at.get(r.toId),at.get(r.fromId))[0]||null;
+   const p=pairs.get(r.fromId+'|'+r.toId),stats=pairStats(detail,at.get(r.fromId),at.get(r.toId));
    if(!p){fail(`${address}: not in the train files`);continue;}
    const buckets=hourBuckets(stats);
    if(buckets.reduce((a,o)=>a+o.trains,0)!==r.trains||buckets.reduce((a,o)=>a+o.reported,0)!==r.arrivals)fail(`${address}: the hours add up to ${buckets.reduce((a,o)=>a+o.trains,0)} trains and ${buckets.reduce((a,o)=>a+o.reported,0)} arrivals, not ${r.trains} and ${r.arrivals}`);
    if(stats.within15!==p.w15||stats.bands[0]+stats.bands[1]!==p.w10)fail(`${address}: within 10 or 15 minutes differs from the train files`);
    for(const locale of ['en','ko']){
-    const html=renderJourney({row:r,stats,reverse},month,locale),info=journeyPageInfo(r,month,locale);
+    const html=renderJourney({row:r,stats},month,locale),info=journeyPageInfo(r,month,locale);
     const bad=html.replace(/<[^>]*>/g,' ').match(/undefined|NaN|\bnull\b/);if(bad)fail(`${address} (${locale}): text contains "${bad[0]}"`);
     if((html.match(/<tr data-type=/g)||[]).length!==r.trains)fail(`${address} (${locale}): the table does not have a row for each of ${r.trains} trains`);
     const heads=locale==='ko'?[`10분 이내 ${pct0(p.w10/p.reported)}`,`15분 이내 ${pct0(p.w15/p.reported)}`,`<b>${pct0(p.within/p.reported)}</b>`]:[`${pct0(p.w10/p.reported)} within 10 min`,`${pct0(p.w15/p.reported)} within 15 min`,`<b>${pct0(p.within/p.reported)}</b>`];
@@ -227,7 +227,8 @@ let journeyCount=0,journeyPages=0;
     if(sums.reduce((a,m)=>a+m[0],0)!==r.trains||sums.reduce((a,m)=>a+m[1],0)!==r.arrivals)fail(`${address} (${locale}): the hidden hour table does not add up`);
     // Each hour of the chart is a button, and the departure-hour select offers exactly those hours.
     if((html.match(/class="hour-col"/g)||[]).length!==buckets.length||(html.match(/<option value="\d+">/g)||[]).length<buckets.length||!html.includes('id="trains-arr"'))fail(`${address} (${locale}): the hour chart or the hour selects are incomplete`);
-    if(reverse&&!html.includes('other-direction'))fail(`${address} (${locale}): no link to the other direction`);
+    // A dash in the table explains itself in a tooltip.
+    if((html.match(/data-share=""/g)||[]).length!==(html.match(/<td class="s" title=/g)||[]).length)fail(`${address} (${locale}): a dash in the table has no tooltip`);
     if(!info||info.title.length>80||info.description.length>220)fail(`${address} (${locale}): no title and description, or they are too long`);
     journeyPages++;
    }

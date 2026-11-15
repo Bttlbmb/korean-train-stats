@@ -174,8 +174,7 @@ header{flex-wrap:wrap}.header-end{margin-left:auto;display:flex;align-items:cent
 .station-list li.active{background:var(--accent-soft)}.station-list li[aria-selected=true]{font-weight:500}.station-list li.none{color:var(--muted);cursor:default}
 @media(max-width:700px){.station-input{min-height:44px;font-size:15px;min-width:0}.station-list li{padding:11px 12px;font-size:15px}}
 @media(max-width:700px){.number-field{grid-column:1/-1;max-width:none}}
-/* Journey page (journey/<from>-to-<to>/): the link to the other direction, the stacked delay chart by departure hour, and the table's single-line times on phones (the separate cells stay for screen readers). */
-.other-direction{margin-top:2px}.other-direction a{color:var(--accent)}
+/* Journey page (journey/<from>-to-<to>/): the stacked delay chart by departure hour, and the table's single-line times on phones (the separate cells stay for screen readers). */
 .hours-wrap{container-type:inline-size}
 .hours{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:6px;align-items:end;padding-top:6px}
 .hour-col{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0;padding:0;border:0;background:none;font:inherit;cursor:pointer;border-radius:4px}
