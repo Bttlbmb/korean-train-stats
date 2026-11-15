@@ -176,9 +176,14 @@ header{flex-wrap:wrap}.header-end{margin-left:auto;display:flex;align-items:cent
 @media(max-width:700px){.number-field{grid-column:1/-1;max-width:none}}
 /* Journey page (journey/<from>-to-<to>/): the link to the other direction, the stacked delay chart by departure hour, and the table's single-line times on phones (the separate cells stay for screen readers). */
 .other-direction{margin-top:2px}.other-direction a{color:var(--accent)}
+.hours-wrap{container-type:inline-size}
 .hours{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:6px;align-items:end;padding-top:6px}
-.hour-col{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0}
-.hour-pct,.hour-label{font-size:12px;color:var(--ink)}.hour-n{font-size:12px;color:var(--muted)}
+.hour-col{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0;padding:0;border:0;background:none;font:inherit;cursor:pointer;border-radius:4px}
+.hour-col:focus-visible{outline:2px solid var(--accent);outline-offset:2px}.hour-pct i{font-style:normal}
+.hours:has([aria-pressed=true]) .hour-col:not([aria-pressed=true]){opacity:.4}.hour-col[aria-pressed=true] .hour-bar{outline:2px solid var(--ink);outline-offset:1px}
+/* The percent sign needs about 25 px a column; .f12, .f16, .f20, and .f24 say how many columns the chart has at most. */
+@container (max-width:365px){.hours.f12 .hour-pct i{display:none}}@container (max-width:489px){.hours.f16 .hour-pct i{display:none}}@container (max-width:613px){.hours.f20 .hour-pct i{display:none}}@container (max-width:737px){.hours.f24 .hour-pct i{display:none}}
+.hour-pct,.hour-label{font-size:12px;color:var(--ink)}
 .hour-bar{display:flex;flex-direction:column-reverse;width:100%;max-width:40px;height:104px;border-radius:3px;overflow:hidden;background:var(--line-soft)}
 .hour-bar i{display:block;flex:none;width:100%}.hour-bar .k0{background:var(--ontime)}.hour-bar .k1{background:var(--d2)}.hour-bar .k2{background:var(--d3)}.hour-bar .k3{background:var(--d4)}.hour-bar .k4{background:var(--d5)}
 .hour-axis{display:flex;justify-content:space-between;flex-wrap:wrap;gap:2px 12px;margin-top:8px;font-size:12px;color:var(--muted)}
@@ -189,3 +194,6 @@ header{flex-wrap:wrap}.header-end{margin-left:auto;display:flex;align-items:cent
 .jr-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px 16px}.jr-top .jr-fig{flex:1 1 0;min-width:0}
 .jr-top .nav-btn{gap:7px;flex:none}.jr-top .nav-btn svg{flex:none;width:13px;height:13px;display:block}.jr-top .sm{display:none}
 @media(max-width:560px){.jr-top .lg{display:none}.jr-top .sm{display:inline}}
+
+/* On phones the departure-hour and arrival-hour selects share a row. */
+@media(max-width:700px){.station-filters .trains-field.hour-field{grid-column:auto}}

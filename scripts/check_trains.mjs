@@ -225,6 +225,8 @@ let journeyCount=0,journeyPages=0;
     // The cells read "5 trains" and "98 arrivals" (Korean 열차 5편 and 98건), so take the number out of the text.
     const sums=[...html.matchAll(/<tr><td>\d\d:00<\/td><td>\D*([\d,]+)[^<]*<\/td><td>\D*([\d,]+)[^<]*<\/td>/g)].map(m=>[+m[1].replace(/,/g,''),+m[2].replace(/,/g,'')]);
     if(sums.reduce((a,m)=>a+m[0],0)!==r.trains||sums.reduce((a,m)=>a+m[1],0)!==r.arrivals)fail(`${address} (${locale}): the hidden hour table does not add up`);
+    // Each hour of the chart is a button, and the departure-hour select offers exactly those hours.
+    if((html.match(/class="hour-col"/g)||[]).length!==buckets.length||(html.match(/<option value="\d+">/g)||[]).length<buckets.length||!html.includes('id="trains-arr"'))fail(`${address} (${locale}): the hour chart or the hour selects are incomplete`);
     if(reverse&&!html.includes('other-direction'))fail(`${address} (${locale}): no link to the other direction`);
     if(!info||info.title.length>80||info.description.length>220)fail(`${address} (${locale}): no title and description, or they are too long`);
     journeyPages++;
