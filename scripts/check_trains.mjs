@@ -12,6 +12,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
+import assert from 'node:assert/strict';
 const root=path.join(path.dirname(fileURLToPath(import.meta.url)),'..'),data=path.resolve(process.argv[2]||path.join(root,'data'))+'/';
 const {renderTrain,pageInfo}=await import(pathToFileURL(path.join(root,'js/train.js')));
 const {renderDay,pageInfo:dayInfo}=await import(pathToFileURL(path.join(root,'js/day.js')));
@@ -28,6 +29,32 @@ for(const [query,name] of [['Haengshin','Haengsin'],['Cheonan Asan','Cheonan-Asa
 }
 if(stationSearchKey('역곡')!=='역곡')problems.push('station search: removed 역 inside a station name');
 if(stationSearchKey('Seoul')===stationSearchKey('Busan'))problems.push('station search: collapsed different station names');
+// A repeated arrival must survive ordinal changes, exclude missing values, and belong to the correct visit.
+// A → B → X → A → C has two A → C segments; only that pair is ambiguous.
+{
+ const stop=(station,ordinal,arrival,departure,offset=0)=>({station_id:station,station,ordinal,arrival,departure,arrival_day_offset:offset,departure_day_offset:offset});
+ const old=[stop('A',0,null,'23:00'),stop('B',1,'23:10','23:11'),stop('A',2,'23:50','23:51'),stop('C',3,'00:20',null,1)];
+ const current=[old[0],old[1],stop('X',2,'23:30','23:31'),{...old[2],ordinal:3},{...old[3],ordinal:4}];
+ const train={id:'loop',number:1,type:'ITX-Maum',windows:{month:{from:'2026-10-15',to:'2026-10-18',runs:3}},timetables:[{id:'old',stops:old},{id:'current',stops:current}],runs:[
+  {date:'2026-10-14',status:'ok',timetable:'old',delays:[null,0,0,0]},
+  {date:'2026-10-15',status:'ok',timetable:'old',delays:[null,1,17,null]},
+  {date:'2026-10-16',status:'ok',timetable:'old',delays:[null,7,3,0]},
+  {date:'2026-10-17',status:'ok',timetable:'current',delays:[null,5,2,9,12]},
+  {date:'2026-10-18',status:'unavailable',timetable:'current',delays:[null,0,0,0,0]}]};
+ try{
+  const data=journeyData([train],['A','B','X','C'].map(id=>({id,name:id}))),idx=new Map(data.stations.map(([name],i)=>[name,i]));
+  const find=(a,b)=>pairStats(data,idx.get(a),idx.get(b));
+  assert.deepEqual(find('B','A'),{trains:[{id:'loop',number:1,type:'ITX-Maum',dep:1391,arr:1430,reported:3,within:1}],reported:3,within:1,typical:39});
+  assert.deepEqual(find('B','C'),{trains:[{id:'loop',number:1,type:'ITX-Maum',dep:1391,arr:1460,reported:2,within:1}],reported:2,within:1,typical:69});
+  assert.equal(find('A','B').reported,3);assert.equal(find('A','B').within,2);
+  assert.equal(find('B','X').reported,1);assert.equal(find('B','X').within,1);
+  assert.equal(find('A','C').trains.length,0);assert.equal(find('C','B').trains.length,0);assert.equal(find('A','A').trains.length,0);
+  assert.equal(pairCount(data),7);
+  data.trains.push(['direct',2,'KTX',[[idx.get('A'),null,1320,0,0],[idx.get('C'),1340,null,2,2]]]);
+  assert.deepEqual(find('A','C'),{trains:[{id:'direct',number:2,type:'KTX',dep:1320,arr:1340,reported:2,within:2}],reported:2,within:2,typical:20});
+  assert.equal(journeysAt(data,idx.get('A'),idx.get('C'))[0].trains,1);
+ }catch(error){problems.push(`loop journey regression: ${error.message}`);}
+}
 for(const file of fs.readdirSync(data+'trains')){
  const id=file.replace('.json',''),fail=why=>problems.push(`${id}: ${why}`);
  let train,html;try{train=read('trains/'+file);html=renderTrain(train,days,stations);}catch(error){fail(`error ${error.message}`);continue;}
@@ -111,21 +138,25 @@ let journeyCount=0;
  const fail=why=>problems.push(`all-journeys page: ${why}`),month=read('windows/month.json'),trains=fs.readdirSync(data+'trains').map(file=>read('trains/'+file));
  const stops=journeyData(trains,stations.stations),list=journeyList(stops);journeyCount=list.length;
  // Count each pair again straight from the train files: the trains that call at both stations in the current timetable, and the reported arrivals at the second one, each matched in its own run's timetable.
- const pairs=new Map();
+ const pairs=new Map(),loopIds=new Set(),minute=(time,offset)=>Number(time.slice(0,2))*60+Number(time.slice(3))+(offset||0)*1440;
  for(const train of trains){
   const w=train.windows?.month;if(!w?.runs)continue;
-  const current=train.timetables.at(-1).stops,ids=current.map(s=>s.station_id);if(new Set(ids).size!==ids.length)continue;
+  const current=train.timetables.at(-1).stops,ids=current.map(s=>s.station_id),segments=new Map();
+  if(new Set(ids).size!==ids.length)loopIds.add(train.id);
   const tmap=new Map(train.timetables.map(t=>[t.id,t])),runs=train.runs.filter(r=>r.status==='ok'&&r.date>=w.from&&r.date<=w.to);
   for(let j=1;j<current.length;j++){
    if(current[j].arrival==null)continue;
    let reported=0,within=0;
-   for(const r of runs){const stop=tmap.get(r.timetable).stops.find(x=>x.station_id===ids[j]),d=stop?.arrival!=null?r.delays?.[stop.ordinal]??null:null;if(d!=null){reported++;if(d<=5)within++;}}
+   const visit=ids.slice(0,j).filter(id=>id===ids[j]).length;
+   for(const r of runs){const stop=tmap.get(r.timetable).stops.filter(x=>x.station_id===ids[j])[visit],d=stop?.arrival!=null?r.delays?.[stop.ordinal]??null:null;if(d!=null){reported++;if(d<=5)within++;}}
    for(let i=0;i<j;i++){
-    if(current[i].departure==null)continue;
-    const k=ids[i]+'|'+ids[j],p=pairs.get(k)||pairs.set(k,{ids:new Set(),reported:0,within:0}).get(k);
-    p.ids.add(train.id);p.reported+=reported;p.within+=within;
+    if(current[i].departure==null||ids[i]===ids[j])continue;
+    const dep=minute(current[i].departure,current[i].departure_day_offset),arr=minute(current[j].arrival,current[j].arrival_day_offset);
+    if(arr<dep)continue;
+    const k=ids[i]+'|'+ids[j];segments.set(k,segments.has(k)?null:{dep,arr,reported,within});
    }
   }
+  for(const [k,s] of segments)if(s){const p=pairs.get(k)||pairs.set(k,{ids:new Set(),reported:0,within:0,details:new Map()}).get(k);p.ids.add(train.id);p.reported+=s.reported;p.within+=s.within;p.details.set(train.id,s);}
  }
  const byName=new Map(stations.stations.map(s=>[s.name,s.id]));
  // Every journey the page can build for a chosen station: the same pairs, trains, and arrivals as the direct count, a share only from 10 trains, and the same rows when narrowed to one station.
@@ -134,6 +165,19 @@ let journeyCount=0;
  let wrong=0;
  for(const r of every){const p=pairs.get(byName.get(r.from)+'|'+byName.get(r.to));if(!p||p.ids.size!==r.trains||p.reported!==r.arrivals||(r.share==null)!==(r.trains<10||!p.reported)||(r.share!=null&&Math.abs(p.within/p.reported-r.share)>1e-9))wrong++;}
  if(wrong)fail(`${wrong} of the ${every.length} journeys built for all stations differ from the train files`);
+ // Check every affected pair's individual trains, times, and destination reports, including pairs below the table threshold.
+ const indexes=new Map(stops.stations.map(([name],i)=>[name,i]));
+ for(const row of every){
+  const expected=pairs.get(byName.get(row.from)+'|'+byName.get(row.to));
+  if(!expected||![...expected.ids].some(id=>loopIds.has(id)))continue;
+  const actual=pairStats(stops,indexes.get(row.from),indexes.get(row.to));
+  try{
+   assert.equal(actual.trains.length,expected.ids.size);assert.equal(new Set(actual.trains.map(t=>t.id)).size,actual.trains.length);
+   assert.equal(actual.reported,expected.reported);assert.equal(actual.within,expected.within);
+   for(const {id,dep,arr,reported,within} of actual.trains)assert.deepEqual({dep,arr,reported,within},expected.details.get(id));
+   assert.equal(actual.typical,row.mins);
+  }catch(error){fail(`${row.from} → ${row.to}: loop pair differs from source: ${error.message}`);}
+ }
  {const idx=new Map(stops.stations.map((s,i)=>[s[0],i]));
   for(const name of ['Seoul','Gangneung']){const i=idx.get(name);
    if(journeysAt(stops,i,null).length!==every.filter(r=>r.from===name).length||journeysAt(stops,null,i).length!==every.filter(r=>r.to===name).length)fail(`${name}: the journeys built for one station differ from those among all`);}}

@@ -1,4 +1,4 @@
-import {pairStats,resultHTML,journeysAt,journeyCount,tableRow} from './journeys.js';
+import {pairStats,resultHTML,journeysAt,journeyCount,tableRow,journeySegments} from './journeys.js';
 import {stationSearchKey,trainNumberKey,ROW_CAP} from './utils.js';
 // The all-journeys page (js/journeys.js) arrives built with the busiest journeys in its table. This loads journeys/data.json, offers every station in the From and To boxes, shows the panel for a chosen pair,
 // and rebuilds the table with every journey of a chosen station (any number of trains). If the data cannot load, the page stays as the built list.
@@ -43,9 +43,8 @@ function start(data){
  const total=journeyCount(data),stations=data.stations,index=new Map(stations.map((s,i)=>[s[0],i])),label=i=>stations[i][ko?1:0],any=from.options[0].textContent;
  // next[i] holds the stations some train calls at after station i, and before[i] the stations it calls at before.
  const next=stations.map(()=>new Set()),before=stations.map(()=>new Set());
- for(const [,,,calls] of data.trains)for(let i=0;i<calls.length-1;i++){
-  if(calls[i][2]==null)continue;
-  for(let j=i+1;j<calls.length;j++)if(calls[j][1]!=null){next[calls[i][0]].add(calls[j][0]);before[calls[j][0]].add(calls[i][0]);}
+ for(const [,,,calls] of data.trains)for(const [i,j] of journeySegments(calls)){
+  next[calls[i][0]].add(calls[j][0]);before[calls[j][0]].add(calls[i][0]);
  }
  // The From and To boxes share the station directory's matching rules. The hidden select keeps each station's public English query key.
  function combobox(select){

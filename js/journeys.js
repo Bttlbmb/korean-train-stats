@@ -7,22 +7,23 @@ import {card} from './station.js';
 const GROUPS=['KTX','ITX','Mugunghwa','Other'];
 const group=type=>type.startsWith('ITX')?'ITX':type;
 const minutes=t=>+t.slice(0,2)*60+ +t.slice(3);
+// Match the same visit across timetable versions, even when another stop moves its ordinal.
+const visits=stops=>{const seen=new Map();return stops.map(s=>{const n=seen.get(s.station_id)||0;seen.set(s.station_id,n+1);return `${s.station_id}#${n}`;});};
 // A journey is listed from 40 trains; a share is shown from 10 trains, so a search for a rare pair still gets its trains, but no overall share.
 export const MIN_TRAINS=40,SHOW_TRAINS=10;
 // Each train's stops in the current timetable as [station index, arrival minute, departure minute, reported arrivals, arrivals within 5 minutes], where a minute counts from midnight of the first day.
-// A train that calls at a station twice (the ITX-Maum loop at Hongseong) is left out, because a pair of stations in order would be ambiguous.
+// Repeated stations keep separate calls, so a loop's final arrival is not matched to its starting departure.
 export function journeyData(trains,stations){
  const byId=new Map(stations.map(s=>[s.id,s])),index=new Map(),names=[],rows=[];
  const at=id=>{let i=index.get(id);if(i==null){i=names.length;index.set(id,i);const s=byId.get(id);names.push([s?.name??id,s?.name_ko||s?.name||id]);}return i;};
  for(const train of trains){
   const w=train.windows?.month;if(!w?.runs)continue;
   const stops=train.timetables.at(-1).stops;
-  if(new Set(stops.map(s=>s.station_id)).size!==stops.length)continue;
-  const tmap=new Map(train.timetables.map(t=>[t.id,t])),runs=train.runs.filter(r=>r.status==='ok'&&r.date>=w.from&&r.date<=w.to);
-  const calls=stops.map(s=>{
+  const keys=visits(stops),tmap=new Map(train.timetables.map(t=>{const own=visits(t.stops);return [t.id,new Map(t.stops.map((s,i)=>[own[i],s]))];})),runs=train.runs.filter(r=>r.status==='ok'&&r.date>=w.from&&r.date<=w.to);
+  const calls=stops.map((s,i)=>{
    let reported=0,within=0;
    if(s.arrival!=null)for(const r of runs){
-    const stop=tmap.get(r.timetable).stops.find(x=>x.station_id===s.station_id),d=stop?.arrival!=null?r.delays?.[stop.ordinal]??null:null;
+    const stop=tmap.get(r.timetable)?.get(keys[i]),d=stop?.arrival!=null?r.delays?.[stop.ordinal]??null:null;
     if(d!=null){reported++;if(d<=5)within++;}
    }
    return [at(s.station_id),s.arrival==null?null:minutes(s.arrival)+(s.arrival_day_offset||0)*1440,s.departure==null?null:minutes(s.departure)+(s.departure_day_offset||0)*1440,reported,within];
@@ -31,14 +32,30 @@ export function journeyData(trains,stations){
  }
  return {stations:names,trains:rows};
 }
+// One forward segment per train and pair of distinct stations. If several visit combinations fit,
+// omit only that ambiguous pair; keep the train's other journeys. Search options use this same rule.
+export function* journeySegments(calls){
+ const pairs=new Map();
+ for(let i=0;i<calls.length-1;i++){
+  if(calls[i][2]==null)continue;
+  for(let j=i+1;j<calls.length;j++){
+   if(calls[j][1]==null||calls[i][0]===calls[j][0]||calls[j][1]<calls[i][2])continue;
+   const key=`${calls[i][0]}:${calls[j][0]}`;
+   pairs.set(key,pairs.has(key)?null:[i,j]);
+  }
+ }
+ for(const pair of pairs.values())if(pair)yield pair;
+}
 // The trains that call at station a and later at station b (indexes into data.stations), by departure from a, with the arrivals reported at b and the typical (median) time between the stations.
 export function pairStats(data,a,b){
  const trains=[];let reported=0,within=0;
  for(const [id,number,type,calls] of data.trains){
-  const i=calls.findIndex(c=>c[0]===a),j=calls.findIndex(c=>c[0]===b);
-  if(i<0||j<0||i>=j||calls[i][2]==null||calls[j][1]==null)continue;
-  reported+=calls[j][3];within+=calls[j][4];
-  trains.push({id,number,type,dep:calls[i][2],arr:calls[j][1],reported:calls[j][3],within:calls[j][4]});
+  for(const [i,j] of journeySegments(calls)){
+   if(calls[i][0]!==a||calls[j][0]!==b)continue;
+   reported+=calls[j][3];within+=calls[j][4];
+   trains.push({id,number,type,dep:calls[i][2],arr:calls[j][1],reported:calls[j][3],within:calls[j][4]});
+   break;
+  }
  }
  trains.sort((x,y)=>x.dep-y.dep||x.id.localeCompare(y.id));
  const times=trains.map(t=>t.arr-t.dep).sort((x,y)=>x-y);
@@ -48,14 +65,11 @@ export function pairStats(data,a,b){
 // from and to (indexes) narrow it to the journeys that start or end at one station.
 function collect(data,from=null,to=null){
  const by=new Map(),n=data.stations.length;
- for(const [id,,type,calls] of data.trains)for(let i=0;i<calls.length-1;i++){
-  if(calls[i][2]==null||(from!=null&&calls[i][0]!==from))continue;
-  for(let j=i+1;j<calls.length;j++){
-   if(calls[j][1]==null||(to!=null&&calls[j][0]!==to))continue;
+ for(const [id,,type,calls] of data.trains)for(const [i,j] of journeySegments(calls)){
+   if((from!=null&&calls[i][0]!==from)||(to!=null&&calls[j][0]!==to))continue;
    const k=calls[i][0]*n+calls[j][0];let p=by.get(k);
    if(!p)by.set(k,p={a:calls[i][0],b:calls[j][0],ids:new Set(),types:new Set(),times:[],reported:0,within:0});
    p.ids.add(id);p.types.add(group(type));p.times.push(calls[j][1]-calls[i][2]);p.reported+=calls[j][3];p.within+=calls[j][4];
-  }
  }
  return by;
 }
