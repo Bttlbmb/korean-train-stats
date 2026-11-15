@@ -1,4 +1,4 @@
-import {esc,num,pct0,bar,empty,ROW_CAP,MIN_DAYS} from './utils.js';
+import {esc,num,pct0,bar,empty,ROW_CAP,MIN_DAYS,trainNumberSearch,tableHeading} from './utils.js';
 import {localeUtils,localizeTrain,stationName} from './locale.js';
 import {pinHTML} from './train.js';
 // A station page (station/<id>/): the station on the map, the most and least punctual trains that call there, and a table of every train.
@@ -83,12 +83,12 @@ export function renderStation(station,rows,month,locale='en'){
 
  const few=rows.length<=FEW;
  const controls=few?'':`<form class="trains-filters station-filters" id="trains-filters" hidden>${types.length>1?`<fieldset><legend>${t('Train types','열차 종류')}</legend><div class="type-chips">${boxes}</div></fieldset>`:''}`
-  +`<div class="trains-field"><label for="trains-to">${t('Toward','방면')}</label><select id="trains-to"><option value="">${t('Any direction','전체 방면')}</option>${options}</select></div>`
+  +trainNumberSearch(locale)+`<div class="trains-field"><label for="trains-to">${t('Toward','방면')}</label><select id="trains-to"><option value="">${t('Any direction','전체 방면')}</option>${options}</select></div>`
   +`<div class="trains-field sort-field"><label for="trains-sort">${t('Sort by','정렬 기준')}</label><select id="trains-sort">${SORTS.map(([v,[e,kr]])=>`<option value="${v}">${t(e,kr)}</option>`).join('')}</select></div></form>`
   +`<div class="trains-status" id="trains-status" hidden><p class="meta" id="trains-count" aria-live="polite"${calls?` data-text="${t('{n} of {total} stops','전체 정차 {total}회 중 {n}회')}"`:''}>${calls?t(`${total} of ${total} stops`,`전체 정차 ${total}회 중 ${total}회`):t(`${total} of ${total} trains`,`전체 ${total}편 중 ${total}편`)}</p><button type="button" id="trains-reset" hidden>${t('Reset','초기화')}</button></div>`;
  const legend=`<div class="trains-key">${shareLegend()}<span class="meta">${t(`A dash means fewer than ${MIN_DAYS} recorded days, or a train that starts here`,`도착 기록이 ${MIN_DAYS}일 미만이거나 이 역에서 출발하는 열차는 ‘—’로 표시합니다.`)}</span></div>`;
- const th=(name,text,cls='')=>few?`<th${cls?` class="${cls}"`:''}>${text}</th>`:`<th${cls?` class="${cls}"`:''} data-key="${name}"><button type="button">${text}</button></th>`;
- const table=`<table class="trains-table station-table"><thead><tr>${th('arr',t('Arrives','도착'))}${th('num',t('Train','열차'))}${th('route',t('Toward','방면'))}${th('share',t('Within 5 min','5분 이내 도착 비율'),'s')}</tr></thead><tbody id="trains-rows"${rows.length>ROW_CAP?` data-cap="${ROW_CAP}"`:''}${calls?` data-more="${t('Show all {n} stops','전체 정차 {n}회 보기')}"`:''}>${rows.map(r=>tableRow(r,locale)).join('')}</tbody></table>`
+ const th=(name,text,cls='')=>tableHeading(few?'':name,text,cls);
+ const table=`<table class="trains-table station-table" role="table"><thead><tr>${th('arr',t('Arrives','도착'))}${th('num',t('Train','열차'))}${th('route',t('Toward','방면'))}${th('share',t('Within 5 min','5분 이내 도착 비율'),'s')}</tr></thead><tbody id="trains-rows"${rows.length>ROW_CAP?` data-cap="${ROW_CAP}"`:''}${calls?` data-more="${t('Show all {n} stops','전체 정차 {n}회 보기')}"`:''}>${rows.map(r=>tableRow(r,locale)).join('')}</tbody></table>`
   +`<p class="trains-empty" id="trains-empty" hidden>${t('No trains match these filters.','선택한 조건에 맞는 열차가 없습니다. 조건을 바꾸거나 초기화해 주세요.')}</p>`;
  return head+lists+card(ko?`${name}역의 열차 찾기`:`Find a train at ${name}`,t('Share of stops within 5 min, past 30 days','도착 기록 중 5분 이내에 도착한 비율'),controls+legend+table,'find');
 }

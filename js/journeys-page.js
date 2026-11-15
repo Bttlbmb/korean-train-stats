@@ -1,13 +1,37 @@
 import {pairStats,resultHTML,journeysAt,journeyCount,tableRow} from './journeys.js';
+import {stationSearchKey,trainNumberKey,ROW_CAP} from './utils.js';
 // The all-journeys page (js/journeys.js) arrives built with the busiest journeys in its table. This loads journeys/data.json, offers every station in the From and To boxes, shows the panel for a chosen pair,
 // and rebuilds the table with every journey of a chosen station (any number of trains). If the data cannot load, the page stays as the built list.
 // The choices live in the address (?from=Seoul&to=Busan&sort=share_desc), so a shared link or Back restores them. replaceState keeps Back from stepping through them.
 const ko=document.documentElement.lang==='ko',locale=ko?'ko':'en';
 const form=document.querySelector('#journeys-filters');
 if(form){
- let data;
- try{const response=await fetch(new URL('../journeys/data.json',import.meta.url));if(!response.ok)throw Error(response.status);data=await response.json();}catch{data=null;}
- if(data)start(data);
+ const languageSwitch=document.querySelector('.language-switch');
+ if(languageSwitch){const address=new URL(languageSwitch.href);address.search=location.search;languageSwitch.href=address.href;}
+ let loading=false;
+ async function load(){
+  if(loading)return;
+  loading=true;
+  let notice=document.querySelector('#journeys-load-error');
+  const retry=notice?.querySelector('button'),retrying=document.activeElement===retry;
+  if(retry)retry.disabled=true;
+  form.closest('#find').setAttribute('aria-busy','true');
+  try{
+   const response=await fetch(new URL('../journeys/data.json',import.meta.url));if(!response.ok)throw Error(response.status);
+   const data=await response.json();
+   start(data);
+   notice?.remove();
+   if(retrying)document.querySelector('#journeys-from-search').focus();
+  }catch{
+   // A failed request is not an empty route. Keep the built catalogue and the requested URL.
+   if(!notice){notice=document.createElement('div');notice.id='journeys-load-error';notice.className='load-notice';notice.innerHTML=`<p role="status"></p><button type="button">${ko?'다시 시도':'Try again'}</button>`;form.closest('main').querySelector('.train-intro').after(notice);notice.querySelector('button').addEventListener('click',load);}
+   const query=new URLSearchParams(location.search),from=query.get('from'),to=query.get('to');
+   const requested=from&&to?`${from} → ${to}`:from||to||'';
+   notice.querySelector('p').textContent=ko?`${requested?`${requested} 구간의 자료를`:'구간 자료를'} 불러오지 못했습니다. 페이지에 포함된 구간 목록을 표시합니다.`:`Couldn’t load ${requested||'journey search'}. Showing the journey list included in this page.`;
+   notice.querySelector('button').disabled=false;
+  }finally{loading=false;form.closest('#find').setAttribute('aria-busy','false');}
+ }
+ load();
 }
 function start(data){
  const $=s=>document.querySelector(s),status=$('#journeys-status'),count=$('#journeys-count'),reset=$('#journeys-reset'),none=$('#journeys-empty'),note=$('#journeys-note'),result=$('#journeys-result'),table=$('#journeys-table'),body=$('#journeys-rows'),
@@ -15,7 +39,7 @@ function start(data){
  // rows are what the table shows now: the built journeys, or the rows made for a chosen station.
  let rows=built;
  built.forEach((row,i)=>row._i=i);
- let key='',dir='ascending',all=false;
+ let key='',dir='ascending',all=false,number='',trainsAll=false;
  const total=journeyCount(data),stations=data.stations,index=new Map(stations.map((s,i)=>[s[0],i])),label=i=>stations[i][ko?1:0],any=from.options[0].textContent;
  // next[i] holds the stations some train calls at after station i, and before[i] the stations it calls at before.
  const next=stations.map(()=>new Set()),before=stations.map(()=>new Set());
@@ -23,9 +47,7 @@ function start(data){
   if(calls[i][2]==null)continue;
   for(let j=i+1;j<calls.length;j++)if(calls[j][1]!=null){next[calls[i][0]].add(calls[j][0]);before[calls[j][0]].add(calls[i][0]);}
  }
- // The From and To dropdowns become boxes you type in, because 272 stations are too many to scroll. A box matches the English and the Korean name, ignores spaces and hyphens, and reads "sh" as "s",
- // so "Haengshin" finds Haengsin. The hidden select keeps the choice, so the rest of the page works on it as before.
- const norm=text=>text.toLowerCase().replace(/sh/g,'s').replace(/[^a-z0-9가-힣]/g,'');
+ // The From and To boxes share the station directory's matching rules. The hidden select keeps each station's public English query key.
  function combobox(select){
   const field=select.closest('.trains-field'),input=document.createElement('input'),list=document.createElement('ul');
   input.type='text';input.id=`${select.id}-search`;input.className='station-input';input.placeholder=any;input.autocomplete='off';input.spellcheck=false;
@@ -34,14 +56,14 @@ function start(data){
   field.querySelector('label').htmlFor=input.id;field.classList.add('combo');select.hidden=true;select.after(input,list);
   let active=-1,shown=[];
   const chosen=()=>select.value?select.selectedOptions[0].textContent:'';
-  const starts=(o,q)=>norm(o.text).startsWith(q)||norm(o.value).startsWith(q);
+  const starts=(o,q)=>stationSearchKey(o.text).startsWith(q)||stationSearchKey(o.value).startsWith(q);
   function paint(){
    [...list.children].forEach((li,i)=>{li.classList.toggle('active',i===active);li.setAttribute('aria-selected',String(shown[i]?.value===select.value));});
    input.setAttribute('aria-activedescendant',active>=0?`${list.id}-${active}`:'');
    list.children[active]?.scrollIntoView({block:'nearest'});
   }
   function open(query){
-   const q=norm(query),all=[...select.options].slice(1).map(o=>({value:o.value,text:o.textContent,key:norm(o.value+o.textContent+(o.dataset.alt||''))}));
+   const q=stationSearchKey(query),all=[...select.options].slice(1).map(o=>({value:o.value,text:o.textContent,key:[o.value,o.textContent,o.dataset.alt||''].map(stationSearchKey).join(' ')}));
    shown=q?all.filter(o=>o.key.includes(q)).sort((a,b)=>starts(b,q)-starts(a,q)):all;
    active=shown.findIndex(o=>o.value===select.value);if(active<0)active=q&&shown.length?0:-1;
    list.replaceChildren(...(shown.length?shown.map((o,i)=>{const li=document.createElement('li');li.id=`${list.id}-${i}`;li.setAttribute('role','option');li.textContent=o.text;li.dataset.value=o.value;return li;}):[Object.assign(document.createElement('li'),{className:'none',textContent:ko?'일치하는 역이 없습니다':'No station matches'})]));
@@ -103,7 +125,19 @@ function start(data){
   const n=pair?0:rows.length;
   count.hidden=!!pair;count.textContent=some?count.dataset.some.replace('{n}',format(n)):count.dataset.text.replace('{n}',format(n)).replace('{total}',format(total));
   none.hidden=n>0||!!pair;table.style.display=pair?'none':'';note.hidden=!!(f||o);
-  if(pair){result.innerHTML=resultHTML(pairStats(data,index.get(f),index.get(o)),stations[index.get(f)],stations[index.get(o)],locale);result.hidden=false;}else{result.hidden=true;sort();}
+  if(pair){result.innerHTML=resultHTML(pairStats(data,index.get(f),index.get(o)),stations[index.get(f)],stations[index.get(o)],locale);result.hidden=false;trainsAll=false;filterTrains();}else{result.hidden=true;number='';sort();}
+ }
+ // The number filters only this journey's train list; the journey-wide figures retain their full scope.
+ function filterTrains(){
+  const input=result.querySelector('#journeys-number');if(!input)return;
+  input.value=number;input.classList.toggle('on',!!number.trim());
+  const train=trainNumberKey(number),matches=[];
+  for(const row of result.querySelectorAll('.rank-row')){row.hidden=!!train&&trainNumberKey(row.dataset.num)!==train;if(!row.hidden)matches.push(row);row.classList.remove('over');}
+  matches.forEach((row,i)=>row.classList.toggle('over',!trainsAll&&i>=ROW_CAP));
+  result.querySelector('#journeys-trains-count').textContent=(ko?'전체 {total}편 중 {n}편':'{n} of {total} trains').replace('{n}',format(matches.length)).replace('{total}',format(result.querySelectorAll('.rank-row').length));
+  result.querySelector('#journeys-trains-empty').hidden=matches.length>0;
+  const button=result.querySelector('.trains-more');
+  if(button){button.hidden=trainsAll||matches.length<=ROW_CAP;button.textContent=ko?`전체 ${format(matches.length)}편 보기`:`Show all ${format(matches.length)} trains`;}
  }
  function sort(){
   const sign=dir==='ascending'?1:-1;
@@ -121,18 +155,20 @@ function start(data){
  }
  // Show Reset and mark a chosen station whenever the page differs from its first state, and keep the address in step.
  function sync(){
-  reset.hidden=!(value(from)||value(to)||key);
+  reset.hidden=!(value(from)||value(to)||key||number.trim());
   from.classList.toggle('on',!!value(from));to.classList.toggle('on',!!value(to));
   const query=new URLSearchParams();
   if(value(from))query.set('from',value(from));
   if(value(to))query.set('to',value(to));
+  if(number.trim())query.set('number',number.trim());
   if(key)query.set('sort',`${key}_${dir==='ascending'?'asc':'desc'}`);
   const text=query.toString();
   history.replaceState(history.state,'',location.pathname+(text?`?${text}`:'')+location.hash);
   const languageSwitch=document.querySelector('.language-switch');
   if(languageSwitch){const address=new URL(languageSwitch.href);address.search=location.search;languageSwitch.href=address.href;}
  }
- function setPair(f,o){
+ function setPair(f,o,train=''){
+  number=train;
   from.value='';to.value='';options();
   from.value=f;options();to.value=o;options();
   all=false;apply();sync();
@@ -140,8 +176,9 @@ function start(data){
 // A long journey shows its first 40 trains; the button shows the rest and moves focus to the first new row.
  result.addEventListener('click',event=>{
   const button=event.target.closest('.trains-more');if(!button)return;
-  const hidden=[...result.querySelectorAll('.rank-row.over')];hidden.forEach(row=>row.classList.remove('over'));button.remove();hidden[0]?.focus();
+  const hidden=[...result.querySelectorAll('.rank-row.over')];trainsAll=true;filterTrains();hidden[0]?.focus();
  });
+ result.addEventListener('input',event=>{if(event.target.id!=='journeys-number')return;number=event.target.value;trainsAll=false;filterTrains();sync();});
  form.addEventListener('submit',event=>event.preventDefault());
  form.addEventListener('input',event=>{
   if(event.target===sortSelect){const [k,d]=sortSelect.value.split(':');[key,dir]=k==='num'&&d==='descending'?['','ascending']:[k,d];sort();}
@@ -153,11 +190,12 @@ function start(data){
   if(key===k)dir=dir==='ascending'?'descending':'ascending';else{key=k;dir=h.dataset.first||(k==='share'?'descending':'ascending');}
   sort();sync();
  }));
- reset.addEventListener('click',()=>{from.value='';to.value='';key='';dir='ascending';all=false;options();apply();sort();sync();});
+ reset.addEventListener('click',()=>{from.value='';to.value='';number='';key='';dir='ascending';all=false;options();apply();sort();sync();});
  // A journey in a top list or the table opens its panel here instead of reloading the page.
  document.addEventListener('click',event=>{
+  if(event.defaultPrevented||event.button||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
   const link=event.target.closest('a.rank-row, #journeys-rows a');if(!link)return;
-  const url=new URL(link.href);if(url.pathname!==location.pathname)return;
+  const url=new URL(link.href);if(url.origin!==location.origin||url.pathname!==location.pathname)return;
   event.preventDefault();setPair(url.searchParams.get('from')||'',url.searchParams.get('to')||'');
   document.querySelector('#find').scrollIntoView({behavior:'smooth',block:'start'});
  });
@@ -165,7 +203,7 @@ function start(data){
  const query=new URLSearchParams(location.search),[k,d]=(query.get('sort')||'').split('_');
  if(heads.some(h=>h.dataset.key===k)&&(d==='asc'||d==='desc')){key=k;dir=d==='asc'?'ascending':'descending';}
  options();
- setPair(query.get('from')||'',query.get('to')||'');
+ setPair(query.get('from')||'',query.get('to')||'',query.get('number')||'');
  sort();sync();
  form.hidden=false;status.hidden=false;
 }

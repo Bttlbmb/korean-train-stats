@@ -1,12 +1,13 @@
 // The all-trains page (js/trains.js), a station page (js/station.js), and the all-stations page (js/stations.js) arrive built with every row in their table. This shows the controls and makes the table filterable and sortable.
-// A station page has only the To select (labelled Toward) and the all-stations page has only a name search (q), so every use of From, To, and q allows it to be missing.
+// Station pages have a To select (labelled Toward) and train-number search; all-stations pages have a station-name search. Each control allows it to be missing.
 // A row's data-type can list several types (a station is served by more than one).
 // The choices live in the address (?types=KTX,ITX&from=Busan&to=Seoul&sort=dep_asc; on a station page ?types=KTX&to=Busan; on the all-stations page ?q=dae&types=KTX), so a shared link or Back restores them. replaceState keeps Back from stepping through them.
+import {stationSearchKey,trainNumberKey} from './utils.js';
 const ko=document.documentElement.lang==='ko';
 const form=document.querySelector('#trains-filters');
 if(form){
  const $=s=>document.querySelector(s),status=$('#trains-status'),count=$('#trains-count'),reset=$('#trains-reset'),none=$('#trains-empty'),body=$('#trains-rows'),
-  from=$('#trains-from'),to=$('#trains-to'),q=$('#stations-q'),sortSelect=$('#trains-sort'),heads=[...document.querySelectorAll('.trains-table th[data-key]')],boxes=[...form.querySelectorAll('input[type=checkbox]')],
+  from=$('#trains-from'),to=$('#trains-to'),q=$('#stations-q'),number=$('#trains-number'),sortSelect=$('#trains-sort'),heads=[...document.querySelectorAll('.trains-table th[data-key]')],boxes=[...form.querySelectorAll('input[type=checkbox]')],
   rows=[...body.children],format=n=>n.toLocaleString(ko?'ko-KR':'en'),stationLabels=new Map([...((from||to)?.options||[])].map(o=>[o.value,o.textContent])),value=select=>select?.value||'';
  rows.forEach((row,i)=>row._i=i);
  let key='',dir='ascending',all=false;
@@ -21,7 +22,7 @@ if(form){
  }
  // A station with one train type has no type boxes, and every row stays.
  const ticked=()=>boxes.length?new Set(boxes.filter(b=>b.checked).map(b=>b.value)):{has:()=>true};
- const typed=(on,row)=>row.dataset.type.split(' ').some(type=>on.has(type)),words=()=>q?q.value.trim().toLowerCase():'';
+ const typed=(on,row)=>row.dataset.type.split(' ').some(type=>on.has(type)),words=()=>q?stationSearchKey(q.value):'';
  // Offer only the stations that still lead to a train, given the ticked types and the other station.
  function fill(select,own,other,otherKey){
   if(!select)return;
@@ -33,8 +34,8 @@ if(form){
  }
  const options=()=>{fill(from,'from',value(to),'to');fill(to,'to',value(from),'from');fill(from,'from',value(to),'to');};
  function apply(){
-  const on=ticked(),word=words();let n=0;
-  for(const row of rows){const ok=typed(on,row)&&(!value(from)||row.dataset.from===value(from))&&(!value(to)||row.dataset.to===value(to))&&(!word||row.dataset.search.includes(word));row.hidden=!ok;if(ok)n++;}
+  const on=ticked(),word=words(),train=number?trainNumberKey(number.value):'';let n=0;
+  for(const row of rows){const ok=typed(on,row)&&(!value(from)||row.dataset.from===value(from))&&(!value(to)||row.dataset.to===value(to))&&(!word||row.dataset.search.includes(word))&&(!train||trainNumberKey(row.dataset.num)===train);row.hidden=!ok;if(ok)n++;}
   count.textContent=(count.dataset.text||(ko?'전체 {total}편 중 {n}편':'{n} of {total} trains')).replace('{n}',format(n)).replace('{total}',format(rows.length));none.hidden=n>0;limit();
  }
  // Trains without a share (a dash) always come last.
@@ -54,13 +55,15 @@ if(form){
  // Show Reset and mark a chosen station whenever the table differs from its first state, and keep the address in step.
  function sync(){
   const unticked=boxes.some(b=>!b.checked);
-  reset.hidden=!(unticked||value(from)||value(to)||words()||key);
+  reset.hidden=!(unticked||value(from)||value(to)||words()||number?.value.trim()||key);
   from?.classList.toggle('on',!!value(from));to?.classList.toggle('on',!!value(to));q?.classList.toggle('on',!!words());
+  number?.classList.toggle('on',!!number.value.trim());
   const query=new URLSearchParams();
   if(unticked)query.set('types',boxes.filter(b=>b.checked).map(b=>b.value).join(','));
   if(value(from))query.set('from',value(from));
   if(value(to))query.set('to',value(to));
   if(words())query.set('q',q.value.trim());
+  if(number?.value.trim())query.set('number',number.value.trim());
   if(key)query.set('sort',`${key}_${dir==='ascending'?'asc':'desc'}`);
   const text=query.toString().replace(/%2C/g,',');
   history.replaceState(history.state,'',location.pathname+(text?`?${text}`:'')+location.hash);
@@ -79,13 +82,14 @@ if(form){
   sort();sync();
  }));
  reset.addEventListener('click',()=>{
-  boxes.forEach(b=>b.checked=true);if(from)from.value='';if(to)to.value='';if(q)q.value='';key='';all=false;dir='ascending';
+  boxes.forEach(b=>b.checked=true);if(from)from.value='';if(to)to.value='';if(q)q.value='';if(number)number.value='';key='';all=false;dir='ascending';
   options();apply();sort();sync();
  });
  // Restore the choices in the address; an unknown value is ignored.
  const query=new URLSearchParams(location.search),wanted=query.get('types')?.split(',').filter(t=>boxes.some(b=>b.value===t));
  if(wanted?.length||query.get('types')==='')boxes.forEach(b=>b.checked=wanted.includes(b.value));
  if(from)from.value=query.get('from')||'';if(to)to.value=query.get('to')||'';if(q)q.value=query.get('q')||'';
+ if(number)number.value=query.get('number')||'';
  const [k,d]=(query.get('sort')||'').split('_');
  if(heads.some(h=>h.dataset.key===k)&&(d==='asc'||d==='desc')){key=k;dir=d==='asc'?'ascending':'descending';}
  options();

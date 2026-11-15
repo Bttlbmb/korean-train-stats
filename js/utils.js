@@ -1,4 +1,11 @@
 export const esc = value => String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+// Match station names without changing their displayed names or public URL keys.
+export const stationSearchKey = value => String(value ?? '').toLowerCase().replace(/sh/g,'s').replace(/[^a-z0-9가-힣]/g,'').replace(/^(.+?)(?:station|역)$/,'$1');
+// Train numbers match exactly, including a ticket's leading zeros and full-width digits.
+export const trainNumberKey = value => String(value ?? '').normalize('NFKC').trim().replace(/^0+(?=\d)/,'');
+export const trainNumberSearch = (locale='en',id='trains-number') => `<div class="trains-field number-field"><label for="${id}">${locale==='ko'?'열차 번호':'Train number'}</label><input type="search" id="${id}" inputmode="numeric" autocomplete="off" placeholder="${locale==='ko'?'예: 237':'e.g. 237'}"></div>`;
+// Mobile tables retain static column labels; sorting uses the visible Sort by select there.
+export const tableHeading = (key,label,cls='',first='') => `<th scope="col"${cls?` class="${cls}"`:''}${key?` data-key="${key}"`:''}${first?` data-first="${first}"`:''}>${key?`<span class="column-label">${label}</span><button type="button">${label}</button>`:label}</th>`;
 export const num = n => n == null ? '—' : Number(n).toLocaleString('en-US');
 export const pct = n => n == null ? '—' : `${(n*100).toFixed(1)}%`;
 export const pct0 = n => n == null ? '—' : n >= 1 ? '100%' : `${Math.min(99,Math.round(n*100))}%`;

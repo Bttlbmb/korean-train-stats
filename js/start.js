@@ -6,7 +6,7 @@ import {localeUtils,configureKoreanStations} from './locale.js';
 const main=document.querySelector('#main'),locale=document.documentElement.lang==='ko'?'ko':'en',ko=locale==='ko',localized=localeUtils(locale);
 if(ko)configureKoreanStations(JSON.parse(document.querySelector('#korean-stations')?.textContent||'{}'));
 const lateOf=s=>s.late??s.stops-s.punctual;
-let barItems=[];
+let barItems=[],loading=false,refreshed=false;
 function bindBars(){
  const bars=document.querySelector('.bars'),read=document.querySelector('#bar-read');if(!bars)return;let active=-1,picked=-1;
  const hint=ko?'막대 하나가 하루입니다. 막대를 선택하면 해당 날짜의 페이지가 열립니다.':'One bar per day. Select to open.';
@@ -25,16 +25,43 @@ function bindBars(){
  show();
 }
 async function render(){
+ if(loading)return;
+ loading=true;
+ const retrying=document.activeElement?.id==='retry';
+ const retry=document.querySelector('#retry');if(retry)retry.disabled=true;
  main.setAttribute('aria-busy','true');
  try{
   const [meta,{days},y,m]=await Promise.all([getJSON('meta.json'),getJSON('days.json'),getJSON('windows/yesterday.json'),getJSON('windows/month.json')]);
-  document.querySelector('#footer').innerHTML=localized.footer(meta);
   const front=renderFront(meta,days,y,m,locale);
   main.innerHTML=front.html;barItems=front.barItems;
+  document.querySelector('#footer').innerHTML=localized.footer(meta);
   if(y.trains?.length)bindTrainDots(y.trains,{height:130,locale});
   bindBars();
- }catch(err){main.innerHTML=ko?'<div class="empty"><h2>자료를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</h2><p><button id="retry">다시 시도</button></p></div>':'<div class="empty"><h2>Data could not be loaded. Try again in a minute.</h2><p><button id="retry">Try again</button></p></div>';console.error(err);}
- finally{main.setAttribute('aria-busy','false');}
+  refreshed=true;
+  if(retrying)main.focus({preventScroll:true});
+ }catch(err){
+  // Keep the built figures and name their dates, even when the page was built on an earlier day.
+  const periods=[...main.querySelectorAll('.period')];
+  periods.forEach((section,i)=>{
+   const {from,to}=section.dataset;
+   section.querySelector('.eyebrow').textContent=i===0?localized.date(to,true):localized.range(from,to);
+   if(!ko)section.querySelector('h2').textContent=i===0?`of Korail train stops were on time on ${localized.date(to,true)}.`:`of stops were on time from ${localized.range(from,to)}.`;
+  });
+  if(!refreshed){
+   // The built canvas has no pixels until its train data loads; keep the accessible data table instead.
+   const dots=main.querySelector('.dot-field');if(dots)dots.hidden=true;
+   const bars=main.querySelector('.bars');
+   if(bars){bars.removeAttribute('tabindex');bars.setAttribute('role','group');bars.setAttribute('aria-label',ko?'날짜별 도착 비율. 막대를 선택하면 해당 날짜의 페이지가 열립니다.':'Daily punctuality. Select a bar to open its day page.');
+    bars.querySelectorAll('a').forEach(link=>{link.tabIndex=0;link.setAttribute('aria-label',localized.date(link.getAttribute('href').split('/').at(-2),true));});}
+  }
+  main.querySelector('.skeleton')?.remove();
+  let notice=main.querySelector('#front-load-error');
+  if(!notice){notice=document.createElement('div');notice.id='front-load-error';notice.className='load-notice';notice.innerHTML=`<p role="status"></p><button type="button" id="retry">${ko?'다시 시도':'Try again'}</button>`;main.prepend(notice);}
+  const latest=periods[0]?.dataset.to;
+  notice.querySelector('p').textContent=latest?(ko?`자료를 새로 불러오지 못했습니다. ${localized.date(latest,true)}까지의 통계를 표시합니다.`:`Couldn’t refresh. Showing figures through ${localized.date(latest,true)}.`):(ko?'자료를 불러오지 못했습니다. 다시 시도해 주세요.':'Couldn’t load the data. Please try again.');
+  console.error(err);
+ }
+ finally{loading=false;main.setAttribute('aria-busy','false');const retry=document.querySelector('#retry');if(retry)retry.disabled=false;}
 }
 document.addEventListener('click',e=>{if(e.target.closest('#retry'))render();});
 render();

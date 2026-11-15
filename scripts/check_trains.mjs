@@ -18,10 +18,16 @@ const {renderDay,pageInfo:dayInfo}=await import(pathToFileURL(path.join(root,'js
 const {trainRow,renderTrains,pageInfo:trainsInfo}=await import(pathToFileURL(path.join(root,'js/trains.js')));
 const {stationRows,renderStation,pageInfo:stationInfo}=await import(pathToFileURL(path.join(root,'js/station.js')));
 const {stationList,renderStations,pageInfo:stationsInfo}=await import(pathToFileURL(path.join(root,'js/stations.js')));
-const {ROW_CAP}=await import(pathToFileURL(path.join(root,'js/utils.js')));
+const {ROW_CAP,stationSearchKey}=await import(pathToFileURL(path.join(root,'js/utils.js')));
 const {journeyData,journeyList,journeysAt,journeyCount:pairCount,pairStats,resultHTML,renderJourneys,pageInfo:journeysInfo,MIN_TRAINS}=await import(pathToFileURL(path.join(root,'js/journeys.js')));
 const read=file=>JSON.parse(fs.readFileSync(data+file,'utf8')),stations=read('stations/index.json'),days=read('days.json').days;
 const problems=[];let pages=0,empty=0;
+// Station lookups accept common spelling and suffix variants in either language.
+for(const [query,name] of [['Haengshin','Haengsin'],['Cheonan Asan','Cheonan-Asan'],['Gwangju-Songjeong','Gwangju Songjeong'],['Gimcheon Gumi','Gimcheon (Gumi)'],['SEOUL Station','Seoul'],['SeoulStation','Seoul'],['서울역','서울'],['천안 아산역','천안아산'],['Jinbu (Odaesan) Station','Jinbu (Odaesan)']]){
+ if(stationSearchKey(query)!==stationSearchKey(name))problems.push(`station search: ${query} does not match ${name}`);
+}
+if(stationSearchKey('역곡')!=='역곡')problems.push('station search: removed 역 inside a station name');
+if(stationSearchKey('Seoul')===stationSearchKey('Busan'))problems.push('station search: collapsed different station names');
 for(const file of fs.readdirSync(data+'trains')){
  const id=file.replace('.json',''),fail=why=>problems.push(`${id}: ${why}`);
  let train,html;try{train=read('trains/'+file);html=renderTrain(train,days,stations);}catch(error){fail(`error ${error.message}`);continue;}
