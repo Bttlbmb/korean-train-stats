@@ -1,5 +1,5 @@
 // The all-trains page (js/trains.js), a station page (js/station.js), and the all-stations page (js/stations.js) arrive built with every row in their table. This shows the controls and makes the table filterable and sortable.
-// Station pages have a To select (labelled Toward) and train-number search; all-stations pages have a station-name search. Each control allows it to be missing.
+// Station pages have a To select (labeled Final destination) and train-number search; all-stations pages have a station-name search. Each control allows it to be missing.
 // A row's data-type can list several types (a station is served by more than one).
 // URL keys: types/from/to/sort plus number for train tables, or q for the station directory. Controls may be absent on a shared consumer.
 // replaceState avoids a history entry per edit; a shared URL or Back from a train restores the current choices, including language switches.

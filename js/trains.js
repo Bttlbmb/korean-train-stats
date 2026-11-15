@@ -52,7 +52,7 @@ export function renderTrains(rows,month,locale='en'){
  const stations=[...new Set(rows.flatMap(r=>[r.origin,r.destination]))].sort((a,b)=>a.localeCompare(b)),options=stations.map(s=>`<option>${esc(s)}</option>`).join('');
  const filters=`<form class="trains-filters" id="trains-filters" hidden><fieldset><legend>Train types</legend><div class="type-chips">${boxes.map(b=>`<label><input type="checkbox" name="type" value="${esc(b.g)}" checked>${esc(b.g)} <span>${num(b.n)}</span></label>`).join('')}</div></fieldset>`
   +trainNumberSearch(locale)+`<div class="trains-field"><label for="trains-from">Starts at</label><select id="trains-from"><option value="">Any station</option>${options}</select></div>`
-  +`<div class="trains-field"><label for="trains-to">Ends at</label><select id="trains-to"><option value="">Any station</option>${options}</select></div>`
+  +`<div class="trains-field"><label for="trains-to">Final destination</label><select id="trains-to"><option value="">Any destination</option>${options}</select></div>`
   +`<div class="trains-field sort-field"><label for="trains-sort">Sort by</label><select id="trains-sort">${SORTS.map(([v,t])=>`<option value="${v}">${t}</option>`).join('')}</select></div></form>`
   +`<div class="trains-status" id="trains-status" hidden><p class="meta" id="trains-count" aria-live="polite">${total} of ${total} trains</p><button type="button" id="trains-reset" hidden>Reset</button></div>`
   +`<div class="trains-key">${shareLegend()}<span class="meta">A dash means fewer than ${MIN_DAYS} recorded days</span></div>`;
@@ -79,7 +79,7 @@ function renderKoreanTrains(rows,month){
  const sorts=['열차 종류','열차 번호','출발 시각 빠른 순','도착 시각 빠른 순','5분 이내 도착 비율 높은 순','5분 이내 도착 비율 낮은 순','운행 구간'];
  const filters=`<form class="trains-filters" id="trains-filters" hidden><fieldset><legend>열차 종류</legend><div class="type-chips">${boxes.map(b=>`<label><input type="checkbox" name="type" value="${esc(b.g)}" checked>${esc(localizeTrain({type:b.g}).type)} <span>${num(b.n)}</span></label>`).join('')}</div></fieldset>`
   +trainNumberSearch('ko')+`<div class="trains-field"><label for="trains-from">출발역</label><select id="trains-from"><option value="">전체 역</option>${options}</select></div>`
-  +`<div class="trains-field"><label for="trains-to">종착역</label><select id="trains-to"><option value="">전체 역</option>${options}</select></div>`
+  +`<div class="trains-field"><label for="trains-to">종착역</label><select id="trains-to"><option value="">전체 종착역</option>${options}</select></div>`
   +`<div class="trains-field sort-field"><label for="trains-sort">정렬 기준</label><select id="trains-sort">${SORTS.map(([v],i)=>`<option value="${v}">${sorts[i]}</option>`).join('')}</select></div></form>`
   +`<div class="trains-status" id="trains-status" hidden><p class="meta" id="trains-count" aria-live="polite">전체 ${total}편 중 ${total}편</p><button type="button" id="trains-reset" hidden>초기화</button></div>`
   +`<div class="trains-key">${ko.shareLegend()}<span class="meta">운행 기록이 ${MIN_DAYS}일 미만이거나 도착 비율을 계산할 자료가 없으면 ‘—’로 표시합니다.</span></div>`;
