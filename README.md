@@ -14,7 +14,7 @@ The build supplies English and Korean versions. Korean pages use `/ko/`, and the
 
 ## Data and credits
 
-The delays are reported by Korail and collected by a separate private scraper. They are not official statistics, and a figure that cannot be computed is shown as a dash. The compilation and figures are licensed under CC BY 4.0; Korail’s rights in its underlying data are unaffected. The train list and station positions come from Mikołaj Kuranowski’s GTFS (CC BY 4.0). The map outline is from Natural Earth (public domain).
+The delays are reported by Korail and collected by a separate private scraper. They are not official statistics, they may contain errors or gaps, and no guarantee is made that they are correct or complete. A figure that cannot be computed is shown as a dash. The compilation and figures are licensed under CC BY 4.0; Korail’s rights in its underlying data are unaffected. The train list and station positions come from Mikołaj Kuranowski’s GTFS (CC BY 4.0). The map outline is from Natural Earth (public domain).
 
 ## Working on the site
 
