@@ -66,7 +66,7 @@ for(const file of fs.readdirSync(data+'trains')){
  if(!rows.length){empty++;if(info)fail('an empty page has a title and description, so it would be indexed');continue;}
  if(!info)fail('no title and description');
  else if(info.title.length>80||info.description.length>160||/undefined|NaN|null/.test(info.title+info.description))fail(`title or description is too long or has bad text: ${info.title} / ${info.description}`);
- const runCount=html.match(/Data for (\d+) runs?/),noted=html.includes('too few to show a share in the train and station lists');
+ const runCount=html.match(/· (\d+) runs?</),noted=html.includes('too few to show a share in the train and station lists');
  if(runCount&&(+runCount[1]<10)!==noted)fail(`${runCount[1]} runs but the short-record note is ${noted?'shown':'missing'}`);
  const finals=html.match(/<b>\d+ of (\d+)<\/b> days on time at/);
  const dotsIn=row=>[(row.match(/class="rail-dot"/g)||[]).length,(row.match(/class="rail-dot late( out)?"/g)||[]).length];

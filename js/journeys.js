@@ -143,10 +143,10 @@ export function resultHTML(stats,from,to,locale='en'){
 }
 const SORTS=[['num:descending',['Most trains','열차 많은 순']],['route:ascending',['Name','이름 순']],['share:descending',['Within 5 min, highest','5분 이내 도착 비율 높은 순']],['share:ascending',['Within 5 min, lowest','5분 이내 도착 비율 낮은 순']],['time:ascending',['Scheduled time, shortest','예정 소요 시간 짧은 순']]];
 export function renderJourneys(rows,month,locale='en'){
- const ko=locale==='ko',{range:period,backBtn}=localeUtils(locale),t=(en,kr)=>ko?kr:en;
+ const ko=locale==='ko',{span:period,backBtn}=localeUtils(locale),t=(en,kr)=>ko?kr:en;
  if(!rows?.length||!month?.from)return empty(t(`No journeys with at least ${MIN_TRAINS} trains in the past month.`,`이 기간에 열차가 ${MIN_TRAINS}편 이상인 구간이 없습니다.`));
  const total=num(rows.length);
- const head=`<div class="train-intro train-head"><div class="train-lead">${backBtn}<div><h1>${t('All journeys','전체 구간')}</h1><p class="meta">${ko?`구간 ${total}개 · ${period(month.from,month.to)}`:`${total} journeys · Data for ${period(month.from,month.to)}`}</p></div></div></div>`;
+ const head=`<div class="train-intro train-head"><div class="train-lead">${backBtn}<div><h1>${t('All journeys','전체 구간')}</h1><p class="meta">${ko?`구간 ${total}개 · ${period(month.from,month.to)}`:`${total} journeys · ${period(month.from,month.to)}`}</p></div></div></div>`;
  const busiest=[...rows].slice(0,5),least=[...rows].sort((a,b)=>a.share-b.share||b.arrivals-a.arrivals||a.from.localeCompare(b.from)||a.to.localeCompare(b.to)).slice(0,5);
  const lists=`<div class="trains-lists">${card(t('Busiest','열차가 많은 구간'),t('Trains that call at both · within 5 min','두 역에 모두 정차하는 열차 수 · 5분 이내 도착 비율'),`<div class="rank-rows">${busiest.map(r=>rank(r,locale)).join('')}</div><p class="rank-note">${t('Ranked by the number of trains that call at both.','두 역에 모두 정차하는 열차 수가 많은 순서입니다.')}</p>`)}`
   +`${card(t('Least punctual','5분 이내 도착 비율 하위 구간'),t('Arrivals at the second station within 5 min','도착역 도착 기록 중 5분 이내에 도착한 비율'),`<div class="rank-rows">${least.map(r=>rank(r,locale)).join('')}</div><p class="rank-note">${t(`Journeys with at least ${MIN_TRAINS} trains.`,`열차가 ${MIN_TRAINS}편 이상인 구간을 비교합니다.`)}</p>`)}</div>`;
@@ -197,14 +197,14 @@ function journeyTrainRow(t,locale){
 // The page for one journey: figures for the whole journey, the delay on arrival by hour of departure, and a table of every train. r is its row of the all-journeys list, stats is pairStats from build-time
 // data (with delay bands).
 export function renderJourney({row:r,stats},month,locale='en'){
- const ko=locale==='ko',{range:period,backBtn,shareLegend:legendOf,scaleLegend}=localeUtils(locale),t=(en,kr)=>ko?kr:en,[a,b]=stationNames(r,locale),A=esc(a),B=esc(b),n=stats.trains.length;
+ const ko=locale==='ko',{span:period,backBtn,shareLegend:legendOf,scaleLegend}=localeUtils(locale),t=(en,kr)=>ko?kr:en,[a,b]=stationNames(r,locale),A=esc(a),B=esc(b),n=stats.trains.length;
  if(!n||!stats.reported||!month?.from)return empty(t('No reported arrivals for this journey in the past month.','이 기간에 이 구간의 도착 기록이 없습니다.'));
  const share=stats.within/stats.reported,within10=(stats.bands[0]+stats.bands[1])/stats.reported,within15=stats.within15/stats.reported;
  // Each figure keeps its label on one line when the sentence wraps on a phone.
  const nb=x=>`<span class="nb">${x}</span>`;
  const stat=t(`<b>${pct0(share)}</b> of arrivals at ${B} within 5 min · ${nb(`${pct0(within10)} within 10 min`)} · ${nb(`${pct0(within15)} within 15 min`)} · ${nb(`typical scheduled time ${esc(duration(stats.typical,false))}`)}`,
   `${B} 도착 기록 중 5분 이내 <b>${pct0(share)}</b> · ${nb(`10분 이내 ${pct0(within10)}`)} · ${nb(`15분 이내 ${pct0(within15)}`)} · ${nb(`예정 소요 시간 ${esc(duration(stats.typical,true))}`)}`);
- const head=`<div class="train-intro train-head"><div class="train-lead">${backBtn}<div><h1>${A} → ${B}</h1><p class="meta">${ko?`두 역에 모두 정차하는 열차 ${num(n)}편 · ${nb(period(month.from,month.to))}`:`${num(n)} trains call at both stations · ${nb(`Data for ${period(month.from,month.to)}`)}`}</p><p class="meta train-stats">${stat}</p></div></div></div>`;
+ const head=`<div class="train-intro train-head"><div class="train-lead">${backBtn}<div><h1>${A} → ${B}</h1><p class="meta">${ko?`두 역에 모두 정차하는 열차 ${num(n)}편 · ${nb(period(month.from,month.to))}`:`${num(n)} trains call at both stations · ${nb(period(month.from,month.to))}`}</p><p class="meta train-stats">${stat}</p></div></div></div>`;
  // The chart: a stacked bar per departure hour in the delay scale, the within-5 share above it, the hour below (the tooltip and the hidden table give the trains). A bar needs HOUR_MIN_ARRIVALS arrivals.
  const hours=hourBuckets(stats),label=i=>BANDS[i][ko?1:0],hh=h=>String(h).padStart(2,'0');
  const cols=hours.map(o=>{

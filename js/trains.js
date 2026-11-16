@@ -1,4 +1,4 @@
-import {esc,num,pct0,range,backBtn,shareLegend,bar,empty,ROW_CAP,MIN_DAYS,trainNumberSearch,tableHeading as th} from './utils.js';
+import {esc,num,pct0,range,span,backBtn,shareLegend,bar,empty,ROW_CAP,MIN_DAYS,trainNumberSearch,tableHeading as th} from './utils.js';
 import {localeUtils,localizeTrain,stationName} from './locale.js';
 // The all-trains page (trains/): top lists, filters, and a table with a row for every train that ran in the past month.
 // It needs no browser, so scripts/build.mjs builds the whole page, links included, and trains-page.js only adds the controls.
@@ -44,7 +44,7 @@ export function renderTrains(rows,month,locale='en'){
  const tie=(a,b)=>b.stops-a.stops||a.id.localeCompare(b.id);
  const best=[...withShare].sort((a,b)=>b.share-a.share||tie(a,b)).slice(0,5),worst=[...withShare].sort((a,b)=>a.share-b.share||a.stops-b.stops||a.id.localeCompare(b.id)).slice(0,5);
  const note='Stops within 5 min, past 30 days';
- const head=`<div class="train-intro train-head"><div class="train-lead">${backBtn}<div><h1>All trains</h1><p class="meta">${total} trains · Data for ${range(month.from,month.to)}</p>`
+ const head=`<div class="train-intro train-head"><div class="train-lead">${backBtn}<div><h1>All trains</h1><p class="meta">${total} trains · ${span(month.from,month.to)}</p>`
   +`<p class="meta train-stats"><b>${pct0(month.summary.all.share_punctual)}</b> of stops within 5 min · <b>${num(perfect)}</b> trains had no late stop</p></div></div></div>`;
  const lists=`<div class="trains-lists">${card('Most punctual',note,`<div class="rank-rows">${best.map(rank).join('')}</div><p class="rank-note">${num(perfect)} trains were within 5 min at every stop.</p>`)}`
   +`${card('Least punctual',note,`<div class="rank-rows">${worst.map(rank).join('')}</div><p class="rank-note">Trains with at least ${RANK_DAYS} recorded days.</p>`)}</div>`;
@@ -69,7 +69,7 @@ function renderKoreanTrains(rows,month){
  const tie=(a,b)=>b.stops-a.stops||a.id.localeCompare(b.id);
  const best=[...withShare].sort((a,b)=>b.share-a.share||tie(a,b)).slice(0,5),worst=[...withShare].sort((a,b)=>a.share-b.share||a.stops-b.stops||a.id.localeCompare(b.id)).slice(0,5);
  const note='역별 도착 기록 중 5분 이내에 도착한 비율';
- const head=`<div class="train-intro train-head"><div class="train-lead">${ko.backBtn}<div><h1>전체 열차</h1><p class="meta">열차 ${total}편 · ${ko.range(month.from,month.to)}</p>`
+ const head=`<div class="train-intro train-head"><div class="train-lead">${ko.backBtn}<div><h1>전체 열차</h1><p class="meta">열차 ${total}편 · ${ko.span(month.from,month.to)}</p>`
   +`<p class="meta train-stats"><span class="meta-line">5분 이내 도착 비율 <b>${pct0(month.summary.all.share_punctual)}</b></span><span class="meta-sep"> · </span><span class="meta-line">기록된 모든 도착이 5분 이내인 열차 <b>${num(perfect)}편</b></span></p></div></div></div>`;
  const lists=`<div class="trains-lists">${card('5분 이내 도착 비율 상위 열차',note,`<div class="rank-rows">${best.map(r=>rank(r,'ko')).join('')}</div><p class="rank-note">${RANK_DAYS}일 이상 운행 기록이 있는 열차를 비교합니다. 이 중 ${num(perfect)}편은 기록된 모든 도착이 5분 이내입니다.</p>`)}`
   +`${card('5분 이내 도착 비율 하위 열차',note,`<div class="rank-rows">${worst.map(r=>rank(r,'ko')).join('')}</div><p class="rank-note">${RANK_DAYS}일 이상 운행 기록이 있는 열차를 비교합니다. 지연 정보가 없는 도착 기록은 비율에서 제외합니다.</p>`)}</div>`;

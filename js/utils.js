@@ -20,6 +20,9 @@ export const minutes = n => n>=100 ? `${Math.floor(n/60)} h${n%60?` ${n%60} min`
 export const delay = n => n == null ? '—' : `${n>0?'+':''}${minutes(n)}`;
 export const date = (s,year=false) => s ? new Date(s+'T12:00:00+09:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',...(year?{year:'numeric'}:{}) ,timeZone:'Asia/Seoul'}).replace('Sept','Sep') : '—';
 export const range = (a,b,year=true) => a===b ? date(a,year) : `${date(a)} – ${date(b,year)}`;
+// The window a page's figures cover, as "Last 30 days · 17 Oct – 15 Nov 2026", so a reader sees a deliberate 30-day window rather than all the data there is. A shorter window (collection is new) says its day count instead.
+export const dayCount = (a,b) => Math.round((Date.parse(b)-Date.parse(a))/864e5)+1;
+export const span = (a,b) => `${dayCount(a,b)===30?'Last 30 days':`${dayCount(a,b)} ${dayCount(a,b)===1?'day':'days'}`} · ${range(a,b)}`;
 const stamp = s => s ? new Date(s).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Seoul'})+' KST' : 'Not available';
 export const colorDelay = n => `var(--${n<=5?'ontime':n<=10?'d2':n<=20?'d3':n<=30?'d4':'d5'})`;
 const DELAY_SCALE=[['ontime','Within 5 min'],['d2','6–10'],['d3','11–20'],['d4','21–30'],['d5','Over 30']];

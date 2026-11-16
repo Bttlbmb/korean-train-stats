@@ -35,11 +35,11 @@ function tableRow(r,locale){
 }
 const SORTS=[['',['Name','이름 순']],['num:descending',['Most trains','정차 열차 많은 순']],['share:descending',['Within 5 min, highest','5분 이내 도착 비율 높은 순']],['share:ascending',['Within 5 min, lowest','5분 이내 도착 비율 낮은 순']]];
 export function renderStations(rows,month,locale='en'){
- const ko=locale==='ko',{range:period,backBtn}=localeUtils(locale),t=(en,kr)=>ko?kr:en;
+ const ko=locale==='ko',{span:period,backBtn}=localeUtils(locale),t=(en,kr)=>ko?kr:en;
  if(!rows?.length||!month?.from)return empty(t('No stations with a reported stop in the past month.','이 기간에 도착 기록이 있는 역이 없습니다.'));
  rows=[...rows].sort(byName(locale,r=>ko?r.nameKo:r.name));
  const total=num(rows.length),arrivals=rows.reduce((a,r)=>a+r.arrivals,0),all=rows.reduce((a,r)=>a+r.arrivals*r.share,0)/arrivals;
- const head=`<div class="train-intro train-head"><div class="train-lead">${backBtn}<div><h1>${t('All stations','전체 역')}</h1><p class="meta">${ko?`역 ${total}곳 · ${period(month.from,month.to)}`:`${total} stations · Data for ${period(month.from,month.to)}`}</p>`
+ const head=`<div class="train-intro train-head"><div class="train-lead">${backBtn}<div><h1>${t('All stations','전체 역')}</h1><p class="meta">${ko?`역 ${total}곳 · ${period(month.from,month.to)}`:`${total} stations · ${period(month.from,month.to)}`}</p>`
   +`<p class="meta train-stats">${t(`<b>${pct0(all)}</b> of stops within 5 min`,`5분 이내 도착 비율 <b>${pct0(all)}</b>`)}</p></div></div></div>`;
  // Busiest is a way to find the big stations. Most punctual is left out: many small stations tie at 100%.
  const ranked=rows.filter(r=>r.arrivals>=RANK_ARRIVALS);

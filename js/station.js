@@ -59,14 +59,14 @@ function tableRow(r,locale){
   +`<td class="arr">${time}</td><td class="t"><a href="${href(r.id,locale)}">${trainName(r,locale)}</a></td><td class="r">${toward}</td><td class="s">${bar(s)}</td></tr>`;
 }
 export function renderStation(station,rows,month,locale='en'){
- const ko=locale==='ko',L=localeUtils(locale),{backBtn,range,shareLegend}=L,t=(en,kr)=>ko?kr:en;
+ const ko=locale==='ko',L=localeUtils(locale),{backBtn,range,span,shareLegend}=L,t=(en,kr)=>ko?kr:en;
  const {arrivals,share:all}=figures(rows||[]);
  if(!station||!arrivals)return empty(t('No reported stops at this station in the past month.','이 기간에 이 역의 도착 기록이 없습니다.'));
  const name=place(station.name,locale),starts=rows.filter(r=>r.starts).length,trains=trainCount(rows),calls=rows.length!==trains;
  const types=GROUPS.map(g=>({g,rows:rows.filter(r=>group(r.type)===g)})).filter(x=>x.rows.length),typed=types.filter(x=>x.g!=='Other'&&figures(x.rows).arrivals);
  const label=g=>ko?localizeTrain({type:g}).type:g;
  const stats=t(`<b>${pct0(all)}</b> of stops within 5 min`,`5분 이내 도착 비율 <b>${pct0(all)}</b>`)+(typed.length>1?typed.map(x=>` · ${esc(label(x.g))} <b>${pct0(share(x.rows))}</b>`).join(''):'');
- const meta=ko?`열차 ${num(trains)}편 정차${starts?` · 그중 ${num(starts)}편은 이 역에서 출발`:''}</span><span class="meta-sep"> · </span><span class="meta-line">${range(month.from,month.to)} · 도착 기록 ${num(arrivals)}건`:`${num(trains)} ${trains===1?'train stops':'trains stop'} here${starts?` · ${num(starts)} ${starts===1?'starts':'start'} here`:''}</span><span class="meta-sep"> · </span><span class="meta-line">Data for ${num(arrivals)} stops from ${range(month.from,month.to)}`;
+ const meta=ko?`열차 ${num(trains)}편 정차${starts?` · 그중 ${num(starts)}편은 이 역에서 출발`:''}</span><span class="meta-sep"> · </span><span class="meta-line">${span(month.from,month.to)} · 도착 기록 ${num(arrivals)}건`:`${num(trains)} ${trains===1?'train stops':'trains stop'} here${starts?` · ${num(starts)} ${starts===1?'starts':'start'} here`:''}</span><span class="meta-sep"> · </span><span class="meta-line">${span(month.from,month.to)} · ${num(arrivals)} stops`;
  const head=`<div class="train-intro train-head"><div class="train-lead">${backBtn}<div><h1>${ko?`${name}역`:`${name} station`}</h1><p class="meta"><span class="meta-line">${meta}</span></p><p class="meta train-stats">${stats}</p></div></div>${pinHTML(station)}</div>`;
  // Two lists when at least four trains have enough days to rank; a train is never in both.
  const ranked=rows.filter(r=>r.reported>=RANK_DAYS),k=Math.min(5,Math.floor(ranked.length/2)),perfect=ranked.filter(r=>r.within===r.reported).length;
