@@ -11,8 +11,8 @@
   --row-alt:#f3f3f1;    /* loading shimmer */
   --accent:#1e3a68;     /* links, hover, focus */
   --accent-soft:#e4e8ef;
-  --ontime:#a8c9bb;     /* within 5 min: cells and bars of the delay charts */
-  --ontime-mark:#5e917f; /* within 5 min: dots, ticks, lines, and the green of every share bar */
+  --ontime:#5e917f;     /* within 5 min: the one green of every chart, bar, dot and legend */
+  --ontime-mark:var(--ontime); /* the same green under its older name; the backend's month pages use it */
   --d2:#d9955f;         /* 6-10 min */
   --d3:#c06a3e;         /* 11-20 min; also the late share of every share bar and the late dots */
   --d4:#934428;         /* 21-30 min */

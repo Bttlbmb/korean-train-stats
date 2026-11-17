@@ -27,7 +27,9 @@ Railway labels follow the references below. Statistical labels describe this sit
 | Typical scheduled time between two stations | 예정 소요 시간 | The median over the trains that serve the journey, from the timetable, not observed. 대표 was dropped because it reads as official. Shown as hours and minutes from 60 minutes (1시간 35분), unlike delays, which switch at 100. |
 | Journey page and its button (all-journeys panel) | 구간 페이지 (phones 페이지) | Matches 전체 구간 and the day page’s “열차 페이지”; the long form is the button’s accessible name. Shown only when the journey has a page. |
 | Hour band of departure (journey page chart) | 출발 시간대별 · 출발 시간대(시) | 시간대 is the idiomatic hour band; 시각 stays for a clock time (예정 시각), so 시각대 is not used. Chart notes are full 합니다 sentences. |
-| Journey headline | 부산 도착 기록 중 5분 이내 49% · 10분 이내 82% · 15분 이내 96% · 예정 소요 시간 2시간 48분 | Label first, figure last, as on the station pages (5분 이내 도착 비율 77%). 이내, never 이하. Under the title, 두 역에 모두 정차하는 열차 N편 says which trains the figures cover. |
+| Header figures (train, station, journey, day, and list pages) | 5분 이내 도착 비율 · 종착역 진주 도착이 5분 이내 (13일 중 2일) · 5분 초과 지연 기록이 있는 열차 (945편 중 427편) · 기록된 모든 도착이 5분 이내인 열차 · 5분 넘게 늦은 도착의 지연 시간 중앙값 | Each figure stands over its label, so a label is a noun phrase that reads without the figure. Unreviewed by a native reader. |
+| Front-page lookup row | 내 열차는 보통 제시간에 도착할까요? · 열차 번호나 역 이름으로 찾아보세요. · 검색 · ‘대전’에 맞는 역이 없습니다. | 제시간에 as in the page title. Unreviewed by a native reader. |
+| Journey headline | 부산 도착 기록 중 5분 이내 · 10분 이내 · 15분 이내 · 예정 소요 시간 | Labels under the figures 49%, 82%, 96%, and 2시간 48분. 이내, never 이하. Under the title, 두 역에 모두 정차하는 열차 N편 says which trains the figures cover. |
 | Departure hour and Arrival hour selects, and Any hour | 출발 시간대 · 도착 시간대 · 전체 시간대 | Options read 05:00–05:59 in both languages. 출발 시간대(시) on the chart axis labels the hour numbers. |
 | Naming two stations in a sentence | 서울에서 부산까지 · 서울에 정차한 뒤 부산에 정차하는 | Never 서울과/와 부산: 와/과 changes with the last sound of the name, while 에 and 에서 do not. |
 | Hidden hour table cells | 열차 5편 · 98건 | Counts carry their counter; the English cells read “5 trains” and “98 arrivals”. |

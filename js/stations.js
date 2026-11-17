@@ -1,4 +1,4 @@
-import {esc,num,pct0,range,shareLegend,bar,empty,ROW_CAP,stationSearchKey,tableHeading as th} from './utils.js';
+import {esc,num,pct0,range,shareLegend,bar,empty,ROW_CAP,stationSearchKey,tableHeading as th,stat} from './utils.js';
 import {localeUtils,localizeTrain} from './locale.js';
 import {card,trainCount} from './station.js';
 // The all-stations page (stations/): top lists, a name search and type boxes, and a table with a row for every station where a train reported an arrival in the past month.
@@ -40,7 +40,7 @@ export function renderStations(rows,month,locale='en'){
  rows=[...rows].sort(byName(locale,r=>ko?r.nameKo:r.name));
  const total=num(rows.length),arrivals=rows.reduce((a,r)=>a+r.arrivals,0),all=rows.reduce((a,r)=>a+r.arrivals*r.share,0)/arrivals;
  const head=`<div class="train-intro train-head"><div class="train-lead">${backBtn}<div><h1>${t('All stations','전체 역')}</h1><p class="meta">${ko?`역 ${total}곳 · ${period(month.from,month.to)}`:`${total} stations · ${period(month.from,month.to)}`}</p>`
-  +`<p class="meta train-stats">${t(`<b>${pct0(all)}</b> of stops within 5 min`,`5분 이내 도착 비율 <b>${pct0(all)}</b>`)}</p></div></div></div>`;
+  +`<p class="meta train-stats">${stat(pct0(all),t('stops within 5 min','5분 이내 도착 비율'))}</p></div></div></div>`;
  // Busiest is a way to find the big stations. Most punctual is left out: many small stations tie at 100%.
  const ranked=rows.filter(r=>r.arrivals>=RANK_ARRIVALS);
  const busiest=[...rows].sort((a,b)=>b.trains-a.trains||b.arrivals-a.arrivals||a.id.localeCompare(b.id)).slice(0,5);

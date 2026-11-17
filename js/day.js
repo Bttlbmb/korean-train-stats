@@ -1,4 +1,4 @@
-import {esc,num,delay,colorDelay,tipText,hiddenTable,empty,pct0,backBtn} from './utils.js';
+import {esc,num,delay,colorDelay,tipText,hiddenTable,empty,pct0,backBtn,stat} from './utils.js';
 import {localeUtils,localizeTrain,stationName} from './locale.js';
 const BUCKETS=[['ontime','Within 5 min'],['d2','6–10 min'],['d3','11–20 min'],['d4','21–30 min'],['d5','Over 30 min']];
 const KOREAN_BUCKETS=[['ontime','5분 이내'],['d2','6–10분'],['d3','11–20분'],['d4','21–30분'],['d5','30분 초과']];
@@ -17,7 +17,7 @@ export function pageInfo(day,iso,locale='en'){
 export function renderDay(day,iso,hasTrain=()=>true,locale='en',stationId=()=>null){
  const ko=locale==='ko',{num,delay,minutes:duration,backBtn}=localeUtils(locale),name=dayName(iso,locale);
  if(!day)return ko?'<a class="back-link" href="ko/">‹ 처음으로</a>'+empty('이 날짜의 자료가 없습니다.',`<p class="muted">${esc(name)}의 도착 지연 기록을 확인할 수 없습니다. <a href="ko/">수집된 도착 기록 보기</a></p>`):`<a class="back-link" href="./">‹ Back</a>`+empty('No data for this day.',`<p class="muted">Reported delays for ${esc(name)} are not available. <a href="./">See the past 30 days</a></p>`);
- const summary=ko?`<p class="meta">열차 ${num(day.trains)}편 · 도착 기록 ${num(day.stops)}건</p><p class="meta train-stats">5분 이내 도착 비율 <b>${pct0(day.share_punctual)}</b> · <b>${num(day.trains)}편 중 ${num(day.late_trains)}편</b>에서 5분 초과 지연 기록 있음 · 5분 넘게 늦은 도착의 <span class="nb">지연 시간 중앙값 <b>${day.typical_late_delay==null?'—':duration(day.typical_late_delay)}</b></span></p>`:`<p class="meta">${num(day.trains)} trains with ${num(day.stops)} stops</p><p class="meta train-stats"><b>${pct0(day.share_punctual)}</b> of stops within 5 min · <b>${num(day.late_trains)} of ${num(day.trains)}</b> trains had a late stop · <b>${delay(day.typical_late_delay)}</b> typical delay when late</p>`;
+ const summary=ko?`<p class="meta">열차 ${num(day.trains)}편 · 도착 기록 ${num(day.stops)}건</p><p class="meta train-stats">${stat(pct0(day.share_punctual),'5분 이내 도착 비율')}${stat(`${num(day.trains)}편 중 ${num(day.late_trains)}편`,'5분 초과 지연 기록이 있는 열차')}${stat(day.typical_late_delay==null?'—':duration(day.typical_late_delay),'5분 넘게 늦은 도착의 지연 시간 중앙값')}</p>`:`<p class="meta">${num(day.trains)} trains with ${num(day.stops)} stops</p><p class="meta train-stats">${stat(pct0(day.share_punctual),'stops within 5 min')}${stat(`${num(day.late_trains)} of ${num(day.trains)}`,'trains had a late stop')}${stat(delay(day.typical_late_delay),'typical delay when late')}</p>`;
  const head=`<div class="train-intro train-head"><div class="train-lead">${backBtn}<div><h1>${esc(name).replace(/\d{4}년 \d+월 \d+일|\d+ [A-Za-z]+ \d{4}$/,'<span class="nb">$&</span>')}</h1>${day.trains?summary:''}</div></div></div>`;
  if(!day.trains)return head+empty(ko?'집계할 수 있는 도착 기록이 없습니다.':'No reported delays for this day.');
  const part=n=>ko&&n<.01?'1% 미만':slice(n);

@@ -68,7 +68,7 @@ for(const file of fs.readdirSync(data+'trains')){
  else if(info.title.length>80||info.description.length>160||/undefined|NaN|null/.test(info.title+info.description))fail(`title or description is too long or has bad text: ${info.title} / ${info.description}`);
  const runCount=html.match(/· (\d+) runs?</),noted=html.includes('too few to show a share in the train and station lists');
  if(runCount&&(+runCount[1]<10)!==noted)fail(`${runCount[1]} runs but the short-record note is ${noted?'shown':'missing'}`);
- const finals=html.match(/<b>\d+ of (\d+)<\/b> days on time at/);
+ const finals=html.match(/<b>\d+ of (\d+)<\/b><span>days on time at/);
  const dotsIn=row=>[(row.match(/class="rail-dot"/g)||[]).length,(row.match(/class="rail-dot late( out)?"/g)||[]).length];
  const lastDots=dotsIn(rows.at(-1)).reduce((a,b)=>a+b);
  if(finals&&+finals[1]!==lastDots)fail(`the heading counts ${finals[1]} final-stop days but the last row has ${lastDots} dots`);
@@ -220,7 +220,7 @@ let journeyCount=0,journeyPages=0;
     const html=renderJourney({row:r,stats},month,locale),info=journeyPageInfo(r,month,locale);
     const bad=html.replace(/<[^>]*>/g,' ').match(/undefined|NaN|\bnull\b/);if(bad)fail(`${address} (${locale}): text contains "${bad[0]}"`);
     if((html.match(/<tr data-type=/g)||[]).length!==r.trains)fail(`${address} (${locale}): the table does not have a row for each of ${r.trains} trains`);
-    const heads=locale==='ko'?[`10분 이내 ${pct0(p.w10/p.reported)}`,`15분 이내 ${pct0(p.w15/p.reported)}`,`<b>${pct0(p.within/p.reported)}</b>`]:[`${pct0(p.w10/p.reported)} within 10 min`,`${pct0(p.w15/p.reported)} within 15 min`,`<b>${pct0(p.within/p.reported)}</b>`];
+    const heads=locale==='ko'?[`<b>${pct0(p.w10/p.reported)}</b><span>10분 이내</span>`,`<b>${pct0(p.w15/p.reported)}</b><span>15분 이내</span>`,`<b>${pct0(p.within/p.reported)}</b>`]:[`<b>${pct0(p.w10/p.reported)}</b><span>within 10 min</span>`,`<b>${pct0(p.w15/p.reported)}</b><span>within 15 min</span>`,`<b>${pct0(p.within/p.reported)}</b>`];
     for(const text of heads)if(!html.includes(text))fail(`${address} (${locale}): the headline lacks "${text}"`);
     // The cells read "5 trains" and "98 arrivals" (Korean 열차 5편 and 98건), so take the number out of the text.
     const sums=[...html.matchAll(/<tr><td>\d\d:00<\/td><td>\D*([\d,]+)[^<]*<\/td><td>\D*([\d,]+)[^<]*<\/td>/g)].map(m=>[+m[1].replace(/,/g,''),+m[2].replace(/,/g,'')]);

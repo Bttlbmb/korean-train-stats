@@ -1,4 +1,4 @@
-import {esc,delay,date,range,colorDelay,scaleLegend,markTip,tipText,hiddenTable,empty,pct0,backBtn,MIN_DAYS} from './utils.js';
+import {esc,delay,date,range,colorDelay,scaleLegend,markTip,tipText,hiddenTable,empty,pct0,backBtn,MIN_DAYS,stat} from './utils.js';
 import {korean,localeUtils,localizeTrain} from './locale.js';
 import {KOREA} from './korea.js';
 const percentile=(xs,p)=>{const a=xs.filter(v=>v!=null).sort((a,b)=>a-b);return a.length?a[Math.min(a.length-1,Math.ceil(a.length*p)-1)]:null;};
@@ -63,8 +63,8 @@ export function renderTrain(train,allDays=[],stationIndex=null,locale='en',hasSt
  // The percentile limits drawing space only. Outlying reports remain in the statistics and are marked at the axis edge, not dropped.
  const all=byStop.flatMap(s=>s.values),max=Math.max(15,Math.ceil((percentile(all,.97)||15)/5)*5),x=v=>(Math.max(-2,Math.min(max,v))+2)/(max+2)*100;
  // The typical delay when late means nothing for a train with no late arrival, so the line leaves it out.
- const late=w.typical_late_delay==null?'':ko?` · 5분 넘게 늦은 도착의 <span class="nb">지연 시간 중앙값 <b>${minutes(w.typical_late_delay)}</b></span>`:` · <b>${delay(w.typical_late_delay)}</b> typical delay when late`;
- const stats=ko?`<p class="meta train-stats">5분 이내 도착 비율 <b>${pct0(w.share_punctual)}</b> · 종착역 ${esc(dest.station)} 도착 기록 <b>${w.final_reported??finals.length}일 중 ${w.final_on_time}일</b>은 5분 이내${late}</p>`:`<p class="meta train-stats"><b>${pct0(w.share_punctual)}</b> of stops within 5 min · <b>${w.final_on_time} of ${w.final_reported??finals.length}</b> days on time at ${esc(dest.station)}${late}</p>`;
+ const late=w.typical_late_delay==null?'':ko?stat(minutes(w.typical_late_delay),'5분 넘게 늦은 도착의 지연 시간 중앙값'):stat(delay(w.typical_late_delay),'typical delay when late');
+ const stats=ko?`<p class="meta train-stats">${stat(pct0(w.share_punctual),'5분 이내 도착 비율')}${stat(`${w.final_reported??finals.length}일 중 ${w.final_on_time}일`,`종착역 ${esc(dest.station)} 도착이 5분 이내`)}${late}</p>`:`<p class="meta train-stats">${stat(pct0(w.share_punctual),'stops within 5 min')}${stat(`${w.final_on_time} of ${w.final_reported??finals.length}`,`days on time at ${esc(dest.station)}`)}${late}</p>`;
  // A short record has no share on the list pages, so the page says why its own figures stay.
  const short=ok.length<MIN_DAYS?`<p class="meta train-stats">${ko?`기록이 ${ok.length}일뿐이어서 열차·역 목록에는 비율을 표시하지 않습니다.`:`Only ${ok.length} recorded ${ok.length===1?'day':'days'}: too few to show a share in the train and station lists.`}</p>`:'';
  const timed=byStop.filter(s=>s.arrival!=null);

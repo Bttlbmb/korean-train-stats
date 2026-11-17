@@ -1,4 +1,4 @@
-import {esc,num,pct0,range,shareLegend,bar,empty,hiddenTable,ROW_CAP,MIN_DAYS,trainNumberSearch,tableHeading as th} from './utils.js';
+import {esc,num,pct0,range,shareLegend,bar,empty,hiddenTable,ROW_CAP,MIN_DAYS,trainNumberSearch,tableHeading as th,stat as fig} from './utils.js';
 import {localeUtils,localizeTrain} from './locale.js';
 import {card} from './station.js';
 // The all-journeys page (journeys/): top lists, From and To dropdowns, and a table of every journey that at least 40 trains make, built from the train files.
@@ -200,10 +200,8 @@ export function renderJourney({row:r,stats},month,locale='en'){
  const ko=locale==='ko',{span:period,backBtn,shareLegend:legendOf,scaleLegend}=localeUtils(locale),t=(en,kr)=>ko?kr:en,[a,b]=stationNames(r,locale),A=esc(a),B=esc(b),n=stats.trains.length;
  if(!n||!stats.reported||!month?.from)return empty(t('No reported arrivals for this journey in the past month.','이 기간에 이 구간의 도착 기록이 없습니다.'));
  const share=stats.within/stats.reported,within10=(stats.bands[0]+stats.bands[1])/stats.reported,within15=stats.within15/stats.reported;
- // Each figure keeps its label on one line when the sentence wraps on a phone.
  const nb=x=>`<span class="nb">${x}</span>`;
- const stat=t(`<b>${pct0(share)}</b> of arrivals at ${B} within 5 min · ${nb(`${pct0(within10)} within 10 min`)} · ${nb(`${pct0(within15)} within 15 min`)} · ${nb(`typical scheduled time ${esc(duration(stats.typical,false))}`)}`,
-  `${B} 도착 기록 중 5분 이내 <b>${pct0(share)}</b> · ${nb(`10분 이내 ${pct0(within10)}`)} · ${nb(`15분 이내 ${pct0(within15)}`)} · ${nb(`예정 소요 시간 ${esc(duration(stats.typical,true))}`)}`);
+ const stat=fig(pct0(share),t(`arrivals at ${B} within 5 min`,`${B} 도착 기록 중 5분 이내`))+fig(pct0(within10),t('within 10 min','10분 이내'))+fig(pct0(within15),t('within 15 min','15분 이내'))+fig(esc(duration(stats.typical,ko)),t('typical scheduled time','예정 소요 시간'));
  const head=`<div class="train-intro train-head"><div class="train-lead">${backBtn}<div><h1>${A} → ${B}</h1><p class="meta">${ko?`두 역에 모두 정차하는 열차 ${num(n)}편 · ${nb(period(month.from,month.to))}`:`${num(n)} trains call at both stations · ${nb(period(month.from,month.to))}`}</p><p class="meta train-stats">${stat}</p></div></div></div>`;
  // The chart: a stacked bar per departure hour in the delay scale, the within-5 share above it, the hour below (the tooltip and the hidden table give the trains). A bar needs HOUR_MIN_ARRIVALS arrivals.
  const hours=hourBuckets(stats),label=i=>BANDS[i][ko?1:0],hh=h=>String(h).padStart(2,'0');
@@ -216,7 +214,7 @@ export function renderJourney({row:r,stats},month,locale='en'){
  const fit=[12,16,20,24].find(m=>hours.length<=m);
  const hourTable=hiddenTable(t(`Delay on arrival at ${b} by departure hour`,`${a} 출발 시간대별 ${b} 도착 지연`),[t('Departure hour','출발 시간대'),t('Trains','열차'),t('Reported arrivals','도착 기록'),...BANDS.map((_,i)=>label(i))],hours.map(o=>[`${hh(o.hour)}:00`,trainsText(o.trains,locale),ko?`${num(o.reported)}건`:`${num(o.reported)} ${o.reported===1?'arrival':'arrivals'}`,...o.bands.map(c=>o.reported?`${Math.round(100*c/o.reported)}%`:'—')]));
  const hourCard=card(t('By departure hour','출발 시간대별'),t(`Delay on arrival at ${b}, by hour of departure from ${a}`,`${a} 출발 시간대별 ${b} 도착 지연`),
-  `<div class="trains-key">${scaleLegend()}<span class="meta">${t(`The number above a bar is the share within 5 min. Select a bar to list only the trains that leave in that hour.`,`막대 위 숫자는 5분 이내 도착 비율입니다. 막대를 선택하면 해당 시간대에 출발하는 열차만 표시합니다.`)}</span></div><div class="hours-wrap"><div class="hours f${fit}" role="group" aria-label="${t('Departure hour','출발 시간대')}">${cols}</div></div><div class="hour-axis" aria-hidden="true"><span>${t('Departure hour','출발 시간대(시)')}</span></div>${hourTable}`);
+  `<div class="trains-key">${scaleLegend()}</div><div class="hours-wrap"><div class="hours f${fit}" role="group" aria-label="${t('Departure hour','출발 시간대')}">${cols}</div></div><div class="hour-axis" aria-hidden="true"><span>${t('Departure hour','출발 시간대(시)')}</span></div><p class="meta chart-hint">${t(`The number above a bar is the share within 5 min. Select a bar to list only the trains that leave in that hour.`,`막대 위 숫자는 5분 이내 도착 비율입니다. 막대를 선택하면 해당 시간대에 출발하는 열차만 표시합니다.`)}</p>${hourTable}`);
  // The train table works like the all-trains page's: the same ids and data attributes as js/trains-page.js expects.
  const total=num(n);
  const hourOptions=list=>list.map(h=>`<option value="${h}">${hh(h)}:00–${hh(h)}:59</option>`).join(''),

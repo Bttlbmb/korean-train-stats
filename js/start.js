@@ -1,4 +1,4 @@
-import {esc,num,pct,date,getJSON} from './utils.js';
+import {esc,num,pct,date,getJSON,stationSearchKey,trainNumberKey} from './utils.js';
 import {bindTrainDots} from './dots.js';
 import {renderFront} from './front.js';
 import {localeUtils,configureKoreanStations} from './locale.js';
@@ -48,7 +48,7 @@ async function render(){
   periods.forEach((section,i)=>{
    const {from,to}=section.dataset;
    section.querySelector('.eyebrow').textContent=i===0?localized.date(to,true):localized.range(from,to);
-   if(!ko)section.querySelector('h2').textContent=i===0?`of Korail train stops were on time on ${localized.date(to,true)}.`:`of stops were on time from ${localized.range(from,to)}.`;
+   if(!ko)section.querySelector('h2').textContent=i===0?`of Korail train stops were within 5 minutes of schedule on ${localized.date(to,true)}.`:`of stops were within 5 minutes of schedule from ${localized.range(from,to)}.`;
   });
   if(!refreshed){
    // The built canvas has no pixels until its train data loads; keep the accessible data table instead.
@@ -68,4 +68,34 @@ async function render(){
  finally{loading=false;main.setAttribute('aria-busy','false');const retry=document.querySelector('#retry');if(retry)retry.disabled=false;}
 }
 document.addEventListener('click',e=>{if(e.target.closest('#retry'))render();});
+// The lookup row. A number opens that train's page; a name opens the station's page when one station matches, and the all-stations page with the name filled in when several do.
+// find.json lists the trains and stations that have a page. The listener is on the document because a refresh replaces the form.
+let findData;
+const loadFind=()=>findData??=fetch(new URL('../find.json',import.meta.url)).then(r=>{if(!r.ok)throw Error('find.json');return r.json();}).catch(()=>{findData=null;return null;});
+const home=ko?'ko/':'';
+document.addEventListener('focusin',e=>{if(e.target.id==='find-q')loadFind();});
+document.addEventListener('input',e=>{if(e.target.id==='find-q')document.querySelector('#find-note').textContent='';});
+document.addEventListener('submit',async e=>{
+ if(e.target.id!=='find')return;
+ e.preventDefault();
+ const input=e.target.querySelector('#find-q'),note=document.querySelector('#find-note'),text=input.value.normalize('NFKC').trim();
+ if(!text){input.focus();return;}
+ const digits=text.match(/\d+/)?.[0],number=digits?trainNumberKey(digits):'',word=stationSearchKey(text),data=await loadFind();
+ const miss=message=>{note.textContent=message;input.focus();};
+ if(number){
+  // Without find.json the all-trains page still answers a number.
+  const ids=data?data.trains[number]||[]:null;
+  if(ids?.length===1)location.href=`${home}train/${ids[0]}/`;
+  else if(!ids||ids.length>1)location.href=`${home}trains/?number=${number}`;
+  else miss(ko?`최근 30일 동안 ${number}번 열차의 운행 기록이 없습니다.`:`No train ${number} ran in the past 30 days.`);
+  return;
+ }
+ if(!word){miss(ko?'열차 번호나 역 이름을 입력해 주세요.':'Enter a train number or a station name.');return;}
+ const all=`${home}stations/?q=${encodeURIComponent(text)}`;
+ if(!data){location.href=all;return;}
+ const keys=s=>[stationSearchKey(s[1]),stationSearchKey(s[2])],exact=data.stations.filter(s=>keys(s).includes(word)),found=exact.length?exact:data.stations.filter(s=>keys(s).some(k=>k.includes(word)));
+ if(found.length===1)location.href=`${home}station/${found[0][0]}/`;
+ else if(found.length)location.href=all;
+ else miss(ko?`‘${text}’에 맞는 역이 없습니다.`:`No station matches “${text}”.`);
+});
 render();
