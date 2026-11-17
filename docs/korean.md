@@ -38,7 +38,7 @@ Railway labels follow the references below. Statistical labels describe this sit
 | Back arrow after another page of the site | 이전 페이지로 | The arrow goes back one step; its label when it leads to the front page is 처음으로. |
 | Short record on a train page | 기록이 N일뿐이어서 열차·역 목록에는 비율을 표시하지 않습니다 | A train with fewer than 10 recorded days keeps its figures; this line says why the lists show a dash. |
 | Counters | 편 (trains) · 건 (arrival records) · 곳 (stations) · 개 (journeys) | 열차 429편, 도착 기록 10,261건, 역 272곳, 구간 176개. In a table cell under a column named 열차 the count is bare (203편), as on the station table; the lists and phone lines keep 열차. |
-| Basis of a count | 도착 기록이 N일 이상인 열차 | A station page ranks trains with 20 or more days of reported arrivals at that station and shows a dash under 10. Never 운행 기록, which suggests days the train ran. |
+| Basis of a count | 도착 기록이 N일 미만 | A station page shows a dash for a train with fewer than 10 days of reported arrivals at that station. Never 운행 기록, which suggests days the train ran. |
 
 Use compact noun labels and neutral 합니다 sentences. Dates and weekdays use Korean formatting, with times in Korea time. Keep the brand Korean Train Stats. Service groups retain the existing classification: KTX, ITX-새마을, ITX-마음, ITX-청춘, 무궁화호, 기타. These groups can combine services; translation must not infer a specific train variant.
 

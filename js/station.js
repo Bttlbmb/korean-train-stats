@@ -1,12 +1,11 @@
 import {esc,num,pct0,bar,empty,ROW_CAP,MIN_DAYS,trainNumberSearch,tableHeading,stat} from './utils.js';
 import {localeUtils,localizeTrain,stationName} from './locale.js';
 import {pinHTML} from './train.js';
-// A station page (station/<id>/): the station on the map, the most and least punctual trains that call there, and a table of every train.
+// A station page (station/<id>/): the station on the map and a table of every train.
 // It needs no browser, so scripts/build.mjs builds the whole page and trains-page.js only adds the controls.
 const group=type=>type.startsWith('ITX')?'ITX':type;
 const GROUPS=['KTX','ITX','Mugunghwa','Other'];
 const minutes=t=>+t.slice(0,2)*60+ +t.slice(3);
-const RANK_DAYS=20;
 // A table this short or shorter has no controls.
 const FEW=10;
 // A train can call at one station twice (Hongseong, on the ITX-Maum loop), so a stop is matched across timetable versions by its station and which visit it is.
@@ -50,7 +49,6 @@ export function pageInfo(station,rows,month,locale='en'){
 const href=(id,locale)=>`${locale==='ko'?'ko/':''}train/${encodeURIComponent(id)}/`,trainName=(r,locale)=>`${esc(locale==='ko'?localizeTrain(r).type:r.type)} ${esc(r.number)}`;
 const place=(name,locale)=>esc(locale==='ko'?stationName(name):name);
 export const card=(title,note,inner,id='')=>`<div class="chart-card"${id?` id="${id}"`:''}><div class="block-title"><h2>${title}</h2><span class="meta">${esc(note)}</span></div>${inner}</div>`;
-const rank=(r,locale)=>`<a class="rank-row" href="${href(r.id,locale)}"><span class="rank-name">${trainName(r,locale)}</span><span class="rank-route">${esc(r.time)} · ${place(r.origin,locale)} → ${place(r.destination,locale)}</span><span class="rank-share">${bar(own(r))}</span></a>`;
 const SORTS=[['',['Arrival time','도착 시각 빠른 순']],['num:ascending',['Train number','열차 번호 순']],['share:descending',['Within 5 min, highest','5분 이내 도착 비율 높은 순']],['share:ascending',['Within 5 min, lowest','5분 이내 도착 비율 낮은 순']],['route:ascending',['Final destination','종착역 순']]];
 function tableRow(r,locale){
  const ko=locale==='ko',s=own(r),toward=r.ends?(ko?'이 역이 종착역':'Ends here'):place(r.destination,locale);
@@ -68,13 +66,6 @@ export function renderStation(station,rows,month,locale='en'){
  const stats=stat(pct0(all),t('stops within 5 min','5분 이내 도착 비율'))+(typed.length>1?typed.map(x=>stat(pct0(share(x.rows)),esc(label(x.g)))).join(''):'');
  const meta=ko?`열차 ${num(trains)}편 정차${starts?` · 그중 ${num(starts)}편은 이 역에서 출발`:''}</span><span class="meta-sep"> · </span><span class="meta-line">${span(month.from,month.to)} · 도착 기록 ${num(arrivals)}건`:`${num(trains)} ${trains===1?'train stops':'trains stop'} here${starts?` · ${num(starts)} ${starts===1?'starts':'start'} here`:''}</span><span class="meta-sep"> · </span><span class="meta-line">${span(month.from,month.to)} · ${num(arrivals)} stops`;
  const head=`<div class="train-intro train-head"><div class="train-lead">${backBtn}<div><h1>${ko?`${name}역`:`${name} station`}</h1><p class="meta"><span class="meta-line">${meta}</span></p><p class="meta train-stats">${stats}</p></div></div>${pinHTML(station)}</div>`;
- // Two lists when at least four trains have enough days to rank; a train is never in both.
- const ranked=rows.filter(r=>r.reported>=RANK_DAYS),k=Math.min(5,Math.floor(ranked.length/2)),perfect=ranked.filter(r=>r.within===r.reported).length;
- const tie=(a,b)=>b.reported-a.reported||a.id.localeCompare(b.id)||a.time.localeCompare(b.time);
- const best=[...ranked].sort((a,b)=>b.within/b.reported-a.within/a.reported||tie(a,b)).slice(0,k),worst=[...ranked].sort((a,b)=>a.within/a.reported-b.within/b.reported||tie(a,b)).filter(r=>!best.includes(r)).slice(0,k);
- const note=t('Stops within 5 min, past 30 days','도착 기록 중 5분 이내에 도착한 비율');
- const lists=k<2?'':`<div class="trains-lists">${card(t('Most punctual','5분 이내 도착 비율 상위 열차'),note,`<div class="rank-rows">${best.map(r=>rank(r,locale)).join('')}</div><p class="rank-note">${perfect?t(`${num(perfect)} ${perfect===1?'train was':'trains were'} within 5 min on every recorded day.`,`도착 기록이 ${RANK_DAYS}일 이상인 열차 중 ${num(perfect)}편은 모든 도착이 5분 이내였습니다.`):t(`Trains with at least ${RANK_DAYS} recorded days.`,`도착 기록이 ${RANK_DAYS}일 이상인 열차를 비교합니다.`)}</p>`)}`
-  +`${card(t('Least punctual','5분 이내 도착 비율 하위 열차'),note,`<div class="rank-rows">${worst.map(r=>rank(r,locale)).join('')}</div><p class="rank-note">${t(`Trains with at least ${RANK_DAYS} recorded days.`,`도착 기록이 ${RANK_DAYS}일 이상인 열차를 비교합니다. 지연 정보가 없는 도착 기록은 비율에서 제외합니다.`)}</p>`)}</div>`;
  // Final destination means the train's last stop, not any station along its route; a train that ends here gets its own entry, valued with the station's own name.
  const towards=new Map();for(const r of rows)towards.set(r.destination,r.ends?(ko?'이 역이 종착역':'Ends here'):place(r.destination,locale));
  const options=[...towards].sort((a,b)=>ko?a[1].localeCompare(b[1],'ko'):a[1].localeCompare(b[1])).map(([v,l])=>`<option value="${esc(v)}">${l}</option>`).join('');
@@ -90,5 +81,5 @@ export function renderStation(station,rows,month,locale='en'){
  const th=(name,text,cls='')=>tableHeading(few?'':name,text,cls);
  const table=`<table class="trains-table station-table" role="table"><thead><tr>${th('arr',t('Arrives','도착'))}${th('num',t('Train','열차'))}${th('route',t('Final destination','종착역'))}${th('share',t('Within 5 min','5분 이내 도착 비율'),'s')}</tr></thead><tbody id="trains-rows"${rows.length>ROW_CAP?` data-cap="${ROW_CAP}"`:''}${calls?` data-more="${t('Show all {n} stops','전체 정차 {n}회 보기')}"`:''}>${rows.map(r=>tableRow(r,locale)).join('')}</tbody></table>`
   +`<p class="trains-empty" id="trains-empty" hidden>${t('No trains match these filters.','선택한 조건에 맞는 열차가 없습니다. 조건을 바꾸거나 초기화해 주세요.')}</p>`;
- return head+lists+card(ko?`${name}역의 열차 찾기`:`Find a train at ${name}`,t('Share of stops within 5 min, past 30 days','도착 기록 중 5분 이내에 도착한 비율'),controls+legend+table,'find');
+ return head+card(ko?`${name}역의 열차 찾기`:`Find a train at ${name}`,t('Share of stops within 5 min, past 30 days','도착 기록 중 5분 이내에 도착한 비율'),controls+legend+table,'find');
 }
