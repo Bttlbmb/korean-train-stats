@@ -26,11 +26,11 @@ export function bindTrainDots(trains,{height=130,locale='en'}={}){
   const h=Math.ceil(ts.length/cols)*pitch;canvas.width=Math.round(width*dpr);canvas.height=Math.round(h*dpr);canvas.style.height=h+'px';
   const g=canvas.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);
   const surface=style.getPropertyValue('--surface').trim();
-  // Only the active dot changes: larger, darker, and ringed in the card color. The others keep their color.
+  // A dot fills two thirds of its grid step, so the card color shows between the dots. Only the active dot changes: larger, darker, and ringed in the card color. The others keep their color.
   ts.forEach((t,n)=>{const x=(n%cols)*pitch+pitch/2,y=Math.floor(n/cols)*pitch+pitch/2,hl=n===active,base=t.share_punctual==null?none:hadLate(t)?lt:on;
    if(hl){g.fillStyle=surface;g.beginPath();g.arc(x,y,pitch*.56,0,6.2832);g.fill();}
    g.fillStyle=base;if(hl&&t.share_punctual!=null)g.fillStyle=`color-mix(in srgb,${base} 62%,${hadLate(t)?'#6a1e06':'#04402e'})`;
-   g.beginPath();g.arc(x,y,pitch*(hl?.5:.42),0,6.2832);g.fill();});
+   g.beginPath();g.arc(x,y,pitch*(hl?.5:.33),0,6.2832);g.fill();});
  }
  const set=n=>{if(n!==active){active=n;canvas.style.cursor=n>=0?'pointer':'';draw();show();}};
  const indexAt=e=>{const b=canvas.getBoundingClientRect(),n=Math.floor((e.clientY-b.top)/pitch)*cols+Math.floor((e.clientX-b.left)/pitch);return n>=0&&n<ts.length?n:-1;};

@@ -202,7 +202,7 @@ export function renderJourney({row:r,stats},month,locale='en'){
  const share=stats.within/stats.reported,within10=(stats.bands[0]+stats.bands[1])/stats.reported,within15=stats.within15/stats.reported;
  const nb=x=>`<span class="nb">${x}</span>`;
  const stat=fig(pct0(share),t(`arrivals at ${B} within 5 min`,`${B} 도착 기록 중 5분 이내`))+fig(pct0(within10),t('within 10 min','10분 이내'))+fig(pct0(within15),t('within 15 min','15분 이내'))+fig(esc(duration(stats.typical,ko)),t('typical scheduled time','예정 소요 시간'));
- const head=`<div class="train-intro train-head"><div class="train-lead">${backBtn}<div><h1>${A} → ${B}</h1><p class="meta">${ko?`두 역에 모두 정차하는 열차 ${num(n)}편 · ${nb(period(month.from,month.to))}`:`${num(n)} trains call at both stations · ${nb(period(month.from,month.to))}`}</p><p class="meta train-stats">${stat}</p></div></div></div>`;
+ const head=`<div class="train-intro train-head"><div class="train-lead">${backBtn}<div><h1>${A} → ${B}</h1><p class="meta"><span class="meta-line">${ko?`두 역에 모두 정차하는 열차 ${num(n)}편`:`${num(n)} trains call at both stations`}</span><span class="meta-sep"> · </span><span class="meta-line">${nb(period(month.from,month.to))}</span></p><p class="meta train-stats">${stat}</p></div></div></div>`;
  // The chart: a stacked bar per departure hour in the delay scale, the within-5 share above it, the hour below (the tooltip and the hidden table give the trains). A bar needs HOUR_MIN_ARRIVALS arrivals.
  const hours=hourBuckets(stats),label=i=>BANDS[i][ko?1:0],hh=h=>String(h).padStart(2,'0');
  const cols=hours.map(o=>{
