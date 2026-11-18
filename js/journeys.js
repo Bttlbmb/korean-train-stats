@@ -1,4 +1,4 @@
-import {esc,num,pct0,range,shareLegend,bar,empty,hiddenTable,ROW_CAP,MIN_DAYS,trainNumberSearch,tableHeading as th,stat as fig} from './utils.js';
+import {esc,num,pct0,delaysTitle,fitting,shareLegend,bar,empty,hiddenTable,ROW_CAP,MIN_DAYS,trainNumberSearch,tableHeading as th,stat as fig} from './utils.js';
 import {localeUtils,localizeTrain} from './locale.js';
 import {card} from './station.js';
 // The all-journeys page (journeys/): top lists, From and To dropdowns, and a table of every journey that at least 40 trains make, built from the train files.
@@ -103,8 +103,9 @@ export const journeyCount=data=>collect(data).size;
 // What a search result shows for this page.
 export function pageInfo(rows,month,locale='en'){
  if(!rows?.length||!month?.from)return null;
- if(locale==='ko')return {title:'전체 구간의 열차 도착 지연과 5분 이내 도착 비율 · Korean Train Stats',description:`${localeUtils(locale).range(month.from,month.to)} 동안 코레일 열차가 두 역에 차례로 정차한 구간 ${num(rows.length)}개의 도착 기록을 비교합니다. 구간별 열차 수와 5분 이내 도착 비율을 확인하세요.`};
- return {title:'All Korail journeys and their punctuality · Korean Train Stats',description:`${num(rows.length)} journeys between two stations that at least ${MIN_TRAINS} Korail trains make, with the share of arrivals within 5 minutes of schedule, from ${range(month.from,month.to)}.`};
+ const window=localeUtils(locale).windowPhrase(month.from,month.to);
+ if(locale==='ko')return {title:'전체 구간의 열차 도착 지연과 5분 이내 도착 비율 · Korean Train Stats',description:`서울에서 부산까지 등 구간 ${num(rows.length)}개의 ${window} 도착 기록을 비교합니다. 구간별 열차 수와 5분 이내 도착 비율을 확인하세요.`,crumbs:[{name:'전체 구간'}]};
+ return {title:'All Korail journeys and their punctuality · Korean Train Stats',description:`How punctual is your route? Compare delays on ${num(rows.length)} journeys, from Seoul to Busan and more, by arrivals within 5 min over ${window}.`,crumbs:[{name:'All journeys'}]};
 }
 const stationNames=(r,locale)=>locale==='ko'?[r.fromKo,r.toKo]:[r.from,r.to];
 // A journey with MIN_TRAINS trains and a reported arrival has its own page at journey/<from ID>-to-<to ID>/; the address is public, so it uses the stable station IDs.
@@ -180,11 +181,11 @@ export function hourBuckets(stats){
 // What a search result shows for a journey page.
 export function journeyPageInfo(r,month,locale='en'){
  if(!r||!month?.from||!r.arrivals||r.share==null)return null;
- const [a,b]=stationNames(r,locale);
- // The Korean description joins the two stations with 에 … 뒤 … 에, never 와/과, because that particle changes with the last sound of a station name.
+ const [a,b]=stationNames(r,locale),window=localeUtils(locale).windowPhrase(month.from,month.to);
+ // Korean joins the two stations with 에서 … 까지, never 와/과, because that particle changes with the last sound of a station name.
  if(locale==='ko')return {title:`${a}에서 ${b}까지 열차 도착 지연 · Korean Train Stats`,
-  description:`${a}에 정차한 뒤 ${b}에 정차하는 코레일 열차 ${num(r.trains)}편의 도착 기록. ${localeUtils(locale).range(month.from,month.to)} 동안 ${b} 도착 기록 ${num(r.arrivals)}건 중 ${pct0(r.share)}가 예정 시각 기준 5분 이내에 도착했습니다.`};
- return {title:`${a} → ${b} train delays · Korean Train Stats`,description:`Korail trains that call at ${a} and then ${b}: ${pct0(r.share)} of ${num(r.arrivals)} reported arrivals at ${b} were within 5 minutes of schedule, across ${num(r.trains)} trains, from ${range(month.from,month.to)}.`};
+  description:`${a}에서 ${b}까지 열차 ${num(r.trains)}편: ${window} ${b} 도착 기록 ${num(r.arrivals)}건 중 ${pct0(r.share)}가 5분 이내에 도착했습니다. 출발 시간대별 지연을 확인하세요.`,crumbs:[{name:'전체 구간',to:'journeys/'},{name:`${a}에서 ${b}`}]};
+ return {title:delaysTitle(`${a} → ${b} train`),description:fitting(`${a} to ${b} by train: ${pct0(r.share)} of arrivals were within 5 min of schedule over ${window} (${num(r.trains)} trains). See punctuality by departure hour.`,`${a} to ${b}: ${pct0(r.share)} of arrivals were within 5 min of schedule over ${window} (${num(r.trains)} trains). Punctuality by departure hour.`,`${a} to ${b}: ${pct0(r.share)} of arrivals were within 5 min of schedule over ${window} (${num(r.trains)} trains).`),crumbs:[{name:'All journeys',to:'journeys/'},{name:`${a} to ${b}`}]};
 }
 const JOURNEY_SORTS=[['',['Departs, earliest','출발 시각 빠른 순']],['arr:ascending',['Arrives, earliest','도착 시각 빠른 순']],['num:ascending',['Train number','열차 번호 순']],['share:descending',['Within 5 min, highest','5분 이내 도착 비율 높은 순']],['share:ascending',['Within 5 min, lowest','5분 이내 도착 비율 낮은 순']]];
 // One train's row. The table has the all-trains page's controls (js/trains-page.js): number search, sorting, Reset, and the first ROW_CAP rows. The cell with class times repeats departure and arrival

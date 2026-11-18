@@ -1,4 +1,4 @@
-import {esc,num,pct0,range,span,metaLine,backBtn,shareLegend,bar,empty,ROW_CAP,MIN_DAYS,trainNumberSearch,tableHeading as th,stat} from './utils.js';
+import {esc,num,pct0,span,metaLine,backBtn,shareLegend,bar,empty,ROW_CAP,MIN_DAYS,trainNumberSearch,tableHeading as th,stat} from './utils.js';
 import {localeUtils,localizeTrain,stationName} from './locale.js';
 // The all-trains page (trains/): top lists, filters, and a table with a row for every train that ran in the past month.
 // It needs no browser, so scripts/build.mjs builds the whole page, links included, and trains-page.js only adds the controls.
@@ -20,9 +20,10 @@ const shown=r=>r.runs>=MIN_DAYS?r.share:null,ranked=rows=>rows.filter(r=>r.runs>
 // What a search result shows for this page.
 export function pageInfo(rows,month,locale='en'){
  if(!rows?.length||!month?.from)return null;
- if(locale==='ko')return {title:'전체 열차의 지연과 5분 이내 도착 비율 · Korean Train Stats',description:`${localeUtils(locale).range(month.from,month.to)} 동안 코레일 열차 ${num(rows.length)}편의 역별 도착 기록을 비교합니다. KTX·ITX·무궁화호의 5분 이내 도착 비율과 운행 구간을 확인하세요.`};
+ const L=localeUtils(locale),window=L.windowPhrase(month.from,month.to);
+ if(locale==='ko')return {title:'전체 열차의 지연과 5분 이내 도착 비율 · Korean Train Stats',description:`코레일 KTX·ITX·무궁화호 ${num(rows.length)}편의 ${window} 도착 기록을 비교합니다. 열차별 5분 이내 도착 비율과 운행 구간을 확인하세요.`,crumbs:[{name:'전체 열차'}]};
  return {title:'All Korail trains and their punctuality · Korean Train Stats',
-  description:`${num(rows.length)} Korail trains (KTX, ITX and Mugunghwa) with the share of their stops within 5 minutes of schedule, from ${range(month.from,month.to)}.`};
+  description:`Which KTX, ITX and Mugunghwa trains run on time? Compare delays on all ${num(rows.length)} trains: share of stops within 5 min over ${window}.`,crumbs:[{name:'All trains'}]};
 }
 const href=(id,locale)=>`${locale==='ko'?'ko/':''}train/${encodeURIComponent(id)}/`,name=(r,locale)=>`${esc(locale==='ko'?localizeTrain(r).type:r.type)} ${esc(r.number)}`;
 const card=(title,note,inner,id='')=>`<div class="chart-card"${id?` id="${id}"`:''}><div class="block-title"><h2>${title}</h2>${note?`<span class="meta">${esc(note)}</span>`:''}</div>${inner}</div>`;

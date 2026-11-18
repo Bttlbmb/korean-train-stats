@@ -1,4 +1,4 @@
-import {esc,num,pct0,range,shareLegend,bar,empty,ROW_CAP,stationSearchKey,tableHeading as th,stat} from './utils.js';
+import {esc,num,pct0,shareLegend,bar,empty,ROW_CAP,stationSearchKey,tableHeading as th,stat} from './utils.js';
 import {localeUtils,localizeTrain} from './locale.js';
 import {card,trainCount} from './station.js';
 // The all-stations page (stations/): top lists, a name search and type boxes, and a table with a row for every station where a train reported an arrival in the past month.
@@ -20,8 +20,9 @@ export function stationList(stations,calls){
 // What a search result shows for this page.
 export function pageInfo(rows,month,locale='en'){
  if(!rows?.length||!month?.from)return null;
- if(locale==='ko')return {title:'전체 역의 열차 도착 지연과 5분 이내 도착 비율 · Korean Train Stats',description:`${localeUtils(locale).range(month.from,month.to)} 동안 코레일 열차가 정차한 역 ${num(rows.length)}곳의 도착 기록을 비교합니다. 역별 정차 열차 수와 5분 이내 도착 비율을 확인하세요.`};
- return {title:'All Korail stations and their punctuality · Korean Train Stats',description:`${num(rows.length)} stations where Korail trains call, with the share of stops within 5 minutes of schedule, from ${range(month.from,month.to)}.`};
+ const L=localeUtils(locale),window=L.windowPhrase(month.from,month.to);
+ if(locale==='ko')return {title:'전체 역의 열차 도착 지연과 5분 이내 도착 비율 · Korean Train Stats',description:`코레일 열차가 정차한 역 ${num(rows.length)}곳의 ${window} 도착 기록을 비교합니다. 역별 정차 열차 수와 5분 이내 도착 비율을 확인하세요.`,crumbs:[{name:'전체 역'}]};
+ return {title:'All Korail stations and their punctuality · Korean Train Stats',description:`Which stations see the most delays? Compare ${num(rows.length)} stations by trains and share of stops within 5 min over ${window}.`,crumbs:[{name:'All stations'}]};
 }
 const href=(id,locale)=>`${locale==='ko'?'ko/':''}station/${encodeURIComponent(id)}/`,label=(r,locale)=>esc(locale==='ko'?r.nameKo:r.name);
 const shown=r=>r.arrivals>=MIN_ARRIVALS?r.share:null;

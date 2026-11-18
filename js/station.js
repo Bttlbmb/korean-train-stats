@@ -1,4 +1,4 @@
-import {esc,num,pct0,bar,empty,ROW_CAP,MIN_DAYS,trainNumberSearch,tableHeading,stat} from './utils.js';
+import {esc,num,pct0,delaysTitle,fitting,bar,empty,ROW_CAP,MIN_DAYS,trainNumberSearch,tableHeading,stat} from './utils.js';
 import {localeUtils,localizeTrain,stationName} from './locale.js';
 import {pinHTML} from './train.js';
 // A station page (station/<id>/): the station on the map and a table of every train.
@@ -38,13 +38,18 @@ const figures=rows=>({arrivals:rows.reduce((a,r)=>a+r.reported,0),share:share(ro
 // A train that starts and ends at the station (the ITX-Maum loop at Hongseong) has a row for each visit, so rows can outnumber trains.
 export const trainCount=rows=>new Set(rows.map(r=>r.id)).size;
 // What a search result shows for this page. A station with no reported arrival in the past month has nothing to show, so it gets null.
+// The train types that get their own figure, as the header's stats and the search result show them: two or more, never Other.
+const typesOf=rows=>GROUPS.map(g=>({g,rows:rows.filter(r=>group(r.type)===g)})).filter(x=>x.rows.length);
+const typedOf=types=>types.filter(x=>x.g!=='Other'&&figures(x.rows).arrivals);
 export function pageInfo(station,rows,month,locale='en'){
  const {arrivals,share:all}=figures(rows||[]);if(!station||!month?.from||!arrivals)return null;
- if(locale==='ko'){
+ const ko=locale==='ko',window=localeUtils(locale).windowPhrase(month.from,month.to),typed=typedOf(typesOf(rows)),
+  byType=typed.length>1?` ${typed.map(x=>`${ko?localizeTrain({type:x.g}).type:x.g} ${pct0(share(x.rows))}`).join(', ')}.`:'';
+ if(ko){
   const name=stationName(station.name);
-  return {title:`${name}역 열차 도착 지연 · Korean Train Stats`,description:`${name}역에 정차하는 코레일 열차 ${num(trainCount(rows))}편의 도착 기록. ${localeUtils(locale).range(month.from,month.to)} 동안 도착 기록 ${num(arrivals)}건 중 ${pct0(all)}가 5분 이내에 도착했습니다.`};
+  return {title:`${name}역 열차 도착 지연 · Korean Train Stats`,description:`${name}역 정차 열차 ${num(trainCount(rows))}편: ${window} 도착 기록 ${num(arrivals)}건 중 ${pct0(all)}가 5분 이내에 도착했습니다.${byType}`,crumbs:[{name:'전체 역',to:'stations/'},{name:`${name}역`}]};
  }
- return {title:`${station.name} station train delays · Korean Train Stats`,description:`Korail trains at ${station.name}: ${pct0(all)} of ${num(arrivals)} reported stops were within 5 minutes of schedule, across ${num(trainCount(rows))} trains, from ${localeUtils('en').range(month.from,month.to)}.`};
+ return {title:delaysTitle(`${station.name} station`),description:fitting(`${station.name} station: ${pct0(all)} of train stops were within 5 min of schedule over ${window} (${num(trainCount(rows))} trains).${byType}`,`${station.name} station: ${pct0(all)} of train stops were within 5 min of schedule over ${window} (${num(trainCount(rows))} trains).`),crumbs:[{name:'All stations',to:'stations/'},{name:station.name}]};
 }
 const href=(id,locale)=>`${locale==='ko'?'ko/':''}train/${encodeURIComponent(id)}/`,trainName=(r,locale)=>`${esc(locale==='ko'?localizeTrain(r).type:r.type)} ${esc(r.number)}`;
 const place=(name,locale)=>esc(locale==='ko'?stationName(name):name);
@@ -61,7 +66,7 @@ export function renderStation(station,rows,month,locale='en'){
  const {arrivals,share:all}=figures(rows||[]);
  if(!station||!arrivals)return empty(t('No reported stops at this station in the past month.','이 기간에 이 역의 도착 기록이 없습니다.'));
  const name=place(station.name,locale),starts=rows.filter(r=>r.starts).length,trains=trainCount(rows),calls=rows.length!==trains;
- const types=GROUPS.map(g=>({g,rows:rows.filter(r=>group(r.type)===g)})).filter(x=>x.rows.length),typed=types.filter(x=>x.g!=='Other'&&figures(x.rows).arrivals);
+ const types=typesOf(rows),typed=typedOf(types);
  const label=g=>ko?localizeTrain({type:g}).type:g;
  const stats=stat(pct0(all),t('stops within 5 min','5분 이내 도착 비율'))+(typed.length>1?typed.map(x=>stat(pct0(share(x.rows)),esc(label(x.g)))).join(''):'');
  const meta=metaLine(...(ko?[`열차 ${num(trains)}편 정차${starts?` · 그중 ${num(starts)}편은 이 역에서 출발`:''}`,`${span(month.from,month.to)} · 도착 기록 ${num(arrivals)}건`,'%는 도착 기록 중 5분 이내에 도착한&nbsp;비율']:[`${num(trains)} ${trains===1?'train stops':'trains stop'} here${starts?` · ${num(starts)} ${starts===1?'starts':'start'} here`:''}`,`${span(month.from,month.to)} · ${num(arrivals)} stops`,'% = share of stops within 5&nbsp;min']));

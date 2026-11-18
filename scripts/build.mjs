@@ -5,7 +5,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {renderTrain,pageInfo} from '../js/train.js';
 import {renderDay,pageInfo as dayInfo} from '../js/day.js';
-import {renderFront} from '../js/front.js';
+import {renderFront,frontInfo} from '../js/front.js';
 import {trainRow,renderTrains,pageInfo as trainsInfo} from '../js/trains.js';
 import {stationRows,renderStation,pageInfo as stationInfo} from '../js/station.js';
 import {stationList,renderStations,pageInfo as stationsInfo} from '../js/stations.js';
@@ -44,6 +44,9 @@ const languageSwitch=(address,ko)=>`<a class="language-switch" lang="${ko?'en':'
 // The three list pages as header buttons. The front page shows them on every screen; other pages show them above 640 pixels (the .desktop-nav rule in styles.css) and, at 640 pixels and below, above the footer (cls 'footer-nav').
 const pagesNav=(ko,address='',front=false,up='',cls='header-nav'+(front?'':' desktop-nav'))=>`<nav class="${cls}" aria-label="${ko?'페이지':'Pages'}">${[['trains/',ko?'전체 열차':'All trains'],['stations/',ko?'전체 역':'All stations'],['journeys/',ko?'전체 구간':'All journeys']].map(([to,label])=>`<a class="nav-btn" href="${up}${ko?'ko/':''}${to}"${address===to?' aria-current="page"':''}>${label}</a>`).join('')}</nav>`;
 const stationJSON=JSON.stringify(names).replaceAll('<','\\u003c');
+// A BreadcrumbList for the search result's address line: the brand, then each crumb; the last crumb is the page itself.
+const breadcrumbs=(crumbs,ko,local)=>{if(!crumbs?.length)return '';const base=SITE+(ko?'ko/':''),items=[{name:'Korean Train Stats',item:base},...crumbs.map(c=>({name:c.name,item:c.to?base+c.to:SITE+local}))];
+ return `  <script type="application/ld+json">${JSON.stringify({'@context':'https://schema.org','@type':'BreadcrumbList',itemListElement:items.map((it,i)=>({'@type':'ListItem',position:i+1,name:it.name,item:it.item}))}).replaceAll('<','\\u003c')}</script>\n`;};
 function page(address,info,main,locale='en',front=false,dataset=null){
  // Links inside renderers are relative to the site root. The base accounts for language/depth; the skip link names this page explicitly.
  const ko=locale==='ko',local=(ko?'ko/':'')+address,home=ko?'ko/':'./';
@@ -55,8 +58,7 @@ function page(address,info,main,locale='en',front=false,dataset=null){
   <link rel="canonical" href="${SITE}${local}">
 ${alternate(address)}
 ${preview(info,local,ko)}
-${dataset?`  <script type="application/ld+json">${JSON.stringify(dataset).replaceAll('<','\\u003c')}</script>`:''}
-  <link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+${dataset?`  <script type="application/ld+json">${JSON.stringify(dataset).replaceAll('<','\\u003c')}</script>\n`:''}${breadcrumbs(info.crumbs,ko,local)}  <link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600${ko?'':'&text=%E2%86%92'}&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="tokens.css"><link rel="stylesheet" href="styles.css">
@@ -74,10 +76,13 @@ let index=fs.readFileSync(path.join(root,'index.html'),'utf8');
 index=index.replace('<main id="main" tabindex="-1" aria-busy="true"><div class="skeleton"></div></main>',`<main id="main" tabindex="-1">${renderFront(meta,days,yesterday,month).html}</main>`)
  .replace('<footer id="footer"></footer>',`<footer id="footer">${localeUtils('en').footer(meta)}</footer>`)
  .replace('<nav class="header-nav"','<div class="header-end"><nav class="header-nav"').replace('</nav></header>','</nav>'+languageSwitch('',false)+'</div></header>').replace('</head>',alternate('')+'\n</head>');
+const frontEn=frontInfo(yesterday,month,'en');
+if(frontEn)index=index.replace(/(<meta name="description" content=")[^"]*/,(m,p)=>p+esc(frontEn.description)).replace(/<title>[^<]*<\/title>/,()=>`<title>${esc(frontEn.title)}</title>`)
+ .replace(/(<meta property="og:title" content=")[^"]*/,(m,p)=>p+esc(frontEn.title)).replace(/(<meta property="og:description" content=")[^"]*/,(m,p)=>p+esc(frontEn.description));
 write('index.html',index);
 const dataset=JSON.parse(index.match(/<script type="application\/ld\+json">(.*?)<\/script>/s)[1]);
 Object.assign(dataset,{name:'한국 열차 도착 지연 통계',description:'코레일이 제공한 역별 도착 지연 기록을 집계한 자료입니다. 공식 통계가 아닙니다. 5분 이내 도착 비율과 지연 시간을 제공합니다.',url:SITE+'ko/',inLanguage:'ko',variableMeasured:['5분 이내 도착 비율','도착 지연 시간(분)'],keywords:['코레일','KTX','열차 지연','도착 지연 통계','한국']});
-write('ko/index.html',page('',{title:'한국 열차 도착 지연 통계 · Korean Train Stats',description:'코레일 열차(KTX 포함)는 얼마나 제시간에 도착할까요? 역별 도착 기록으로 살펴보는 5분 이내 도착 비율과 도착 지연.'},renderFront(meta,days,yesterday,month,'ko').html,'ko',true,dataset));
+write('ko/index.html',page('',frontInfo(yesterday,month,'ko')||{title:'코레일 KTX 열차 도착 지연 통계 · Korean Train Stats',description:'코레일 열차(KTX 포함)는 얼마나 제시간에 도착할까요? 역별 도착 기록으로 살펴보는 5분 이내 도착 비율과 도착 지연.'},renderFront(meta,days,yesterday,month,'ko').html,'ko',true,dataset));
 // Stations with a page, by ID and by English name, so a stop name on a train or day page can link to it.
 const callsAt=stationRows(trainData.values()),stationIds=new Map(stations.stations.filter(s=>stationInfo(s,callsAt.get(s.id),month)).map(s=>[s.name,s.id])),pageIds=new Set(stationIds.values());
 const addresses=[''],trainPages=new Set(),rows=[];
@@ -139,7 +144,7 @@ for(const key of monthKeys){
  const figures=monthFigures(key,dayData);if(!figures)throw Error(`Month ${key} is missing a complete archived day`);
  const address=key+'/';
  let english=fs.readFileSync(path.join(out,key,'index.html'),'utf8');
- english=english.replace('</head>',alternate(address)+'\n</head>').replace('</header>',`<div class="header-end">${pagesNav(false,'',false,'../')}${languageSwitch(address,false).replace('href="ko/','href="../ko/')}</div></header>`).replace('<footer id="footer">','<footer id="footer">'+pagesNav(false,'',false,'../','footer-nav'));
+ english=english.replace('</head>',alternate(address)+'\n'+breadcrumbs([{name:new Date(key+'-15T12:00:00Z').toLocaleDateString('en-GB',{month:'long',year:'numeric',timeZone:'UTC'})}],false,address)+'</head>').replace('</header>',`<div class="header-end">${pagesNav(false,'',false,'../')}${languageSwitch(address,false).replace('href="ko/','href="../ko/')}</div></header>`).replace('<footer id="footer">','<footer id="footer">'+pagesNav(false,'',false,'../','footer-nav'));
  write(key+'/index.html',english);
  const info=monthInfo(key,figures),monthDataset={...dataset,name:`${key} 한국 열차 도착 지연 통계`,description:info.description,url:SITE+'ko/'+address,temporalCoverage:`${figures.days[0].date}/${figures.days.at(-1).date}`};
  write('ko/'+key+'/index.html',page(address,info,renderMonth(key,figures,id=>trainPages.has(id)),'ko',false,monthDataset));

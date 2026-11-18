@@ -32,15 +32,13 @@ function dotsHTML(values,x,dates,max){
 }
 // What a search result shows for this page. A train with no run in the past month has an empty page, which is not worth indexing, so it gets null.
 export function pageInfo(train,locale='en'){
- if(korean(locale)){
-  if(!train?.windows?.month?.runs)return null;
-  const t=localizeTrain(train),w=t.windows.month;
-  return {title:`${t.type} ${t.number} ${t.origin} → ${t.destination} 도착 지연 · Korean Train Stats`,description:`${t.type} ${t.number} ${t.origin} → ${t.destination}의 역별 도착 지연 기록. ${localeUtils(locale).range(w.from,w.to)}의 5분 이내 도착 비율과 종착역 도착 지연을 확인하세요.`};
- }
- const w=train?.windows?.month;if(!train||!w?.runs)return null;
- const name=`${train.type} ${train.number}`,span=`${w.days} ${w.days===1?'day':'days'}`;
+ const ko=korean(locale),w=train?.windows?.month;if(!train||!w?.runs)return null;
+ const t=ko?localizeTrain(train):train,name=`${t.type} ${t.number}`,window=localeUtils(locale).windowPhrase(w.from,w.to),stops=train.timetables?.at(-1)?.stops||[],hm=(time,offset)=>time?`${time}${offset?`+${offset}`:''}`:null,
+  depart=hm(stops[0]?.departure,stops[0]?.departure_day_offset),arrive=hm(stops.at(-1)?.arrival,stops.at(-1)?.arrival_day_offset),times=depart&&arrive?`${depart} → ${arrive}`:'';
+ if(ko)return {title:`${name} ${t.origin} → ${t.destination} 도착 지연 · Korean Train Stats`,
+  description:`${name}${times?`(${times})`:''}: ${w.share_punctual==null?`${window} 역별 도착 지연 기록.`:`${window} 도착 기록의 ${pct0(w.share_punctual)}가 5분 이내에 도착했습니다.`} 정차역별·날짜별 도착 지연을 확인하세요.`,crumbs:[{name:'전체 열차',to:'trains/'},{name}]};
  return {title:`${name} ${train.origin} → ${train.destination} delays · Korean Train Stats`,
-  description:`Korail ${name} from ${train.origin} to ${train.destination}: ${w.share_punctual==null?'reported arrival delays':`${pct0(w.share_punctual)} of stops were within 5 minutes of schedule`} over the past ${span}.`};
+  description:`${name}${times?`, ${times}`:''}: ${w.share_punctual==null?'reported arrival delays':`${pct0(w.share_punctual)} of stops were within 5 min of schedule`} over ${window}. Punctuality and delay at every stop.`,crumbs:[{name:'All trains',to:'trains/'},{name}]};
 }
 export function renderTrain(train,allDays=[],stationIndex=null,locale='en',hasStation=()=>false){
  const ko=korean(locale),{date,range,span,delay,minutes,scaleLegend,backBtn,metaLine}=localeUtils(locale);

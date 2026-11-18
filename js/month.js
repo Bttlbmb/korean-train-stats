@@ -21,8 +21,10 @@ export function monthFigures(key,documents){
 const monthName=key=>`${+key.slice(0,4)}년 ${+key.slice(5)}월`;
 export function pageInfo(key,figures){
  if(!figures)return null;
- if(!figures.stops)return {title:`${monthName(key)} 열차 도착 기록 · Korean Train Stats`,description:`${monthName(key)}의 수집은 완료되었으나 집계 가능한 도착 기록이 없습니다.`};
- return {title:`${monthName(key)} 열차 도착 지연 통계 · Korean Train Stats`,description:`${monthName(key)}의 역별 도착 기록 ${num(figures.stops)}건 중 5분 이내 도착 비율은 ${pct0(figures.share_punctual)}입니다. 날짜별 비율과 주요 지연 기록을 확인하세요.`};
+ if(!figures.stops)return {title:`${monthName(key)} 열차 도착 기록 · Korean Train Stats`,description:`${monthName(key)}의 수집은 완료되었으나 집계 가능한 도착 기록이 없습니다.`,crumbs:[{name:monthName(key)}]};
+ const {date}=localeUtils('ko'),counted=figures.days.filter(d=>d.stops>0&&d.share_punctual!=null),best=counted.length>1?counted.reduce((a,b)=>b.share_punctual>a.share_punctual?b:a):null,worst=counted.length>1?counted.reduce((a,b)=>b.share_punctual<a.share_punctual?b:a):null,
+  ends=best?` 가장 높았던 날 ${date(best.date)}(${pct0(best.share_punctual)}), 가장 낮았던 날 ${date(worst.date)}(${pct0(worst.share_punctual)}).`:'';
+ return {title:`${monthName(key)} 열차 도착 지연 통계 · Korean Train Stats`,description:`${monthName(key)}: 도착 기록 ${num(figures.stops)}건 중 ${pct0(figures.share_punctual)}가 5분 이내에 도착했습니다.${ends}`,crumbs:[{name:monthName(key)}]};
 }
 export function renderMonth(key,f,hasTrain=()=>true){
  if(!f)return empty('이달의 집계 자료가 없습니다.');

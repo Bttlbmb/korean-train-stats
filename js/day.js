@@ -8,10 +8,11 @@ const dayName=(iso,locale='en')=>new Date(iso+'T12:00:00+09:00').toLocaleDateStr
 // What a search result shows for this page. A date with no data has an empty page, which is not worth indexing, so it gets null.
 export function pageInfo(day,iso,locale='en'){
  if(!day?.trains)return null;
+ const plain=new Date(iso+'T12:00:00+09:00').toLocaleDateString(locale==='ko'?'ko-KR':'en-GB',{day:'numeric',month:'long',year:'numeric',timeZone:'Asia/Seoul'});
  if(locale==='ko')return {title:`${dayName(iso,locale)} 열차 도착 지연 · Korean Train Stats`,
-  description:`${dayName(iso,locale)}의 5분 이내 도착 비율은 ${pct0(day.share_punctual)}입니다. 열차 ${num(day.trains)}편 중 ${num(day.late_trains)}편에서 5분 초과 지연 기록이 확인되었습니다. 역별 도착 지연 분포와 지연이 가장 컸던 열차를 확인하세요.`};
- return {title:`${dayName(iso)}: Korail train delays · Korean Train Stats`,
-  description:`${dayName(iso)}: ${pct0(day.share_punctual)} of Korail train stops (KTX, ITX and Mugunghwa) were within 5 minutes of schedule, and ${num(day.late_trains)} of ${num(day.trains)} trains had a stop more than 5 minutes late.`};
+  description:`${dayName(iso,locale)}: 도착 기록의 ${pct0(day.share_punctual)}가 5분 이내에 도착했고, 열차 ${num(day.trains)}편 중 ${num(day.late_trains)}편에서 5분 초과 지연이 있었습니다. 가장 큰 지연을 확인하세요.`,crumbs:[{name:plain}]};
+ return {title:`Korail train delays, ${plain} · Korean Train Stats`,
+  description:`${dayName(iso).replace(',','')}: ${pct0(day.share_punctual)} of train stops were within 5 min of schedule; ${num(day.late_trains)} of ${num(day.trains)} trains had a late stop. See punctuality and delays.`,crumbs:[{name:plain}]};
 }
 // A day page stays at its address for good, while a train has a page only with a run in the past month, so hasTrain says which trains to link.
 export function renderDay(day,iso,hasTrain=()=>true,locale='en',stationId=()=>null){
