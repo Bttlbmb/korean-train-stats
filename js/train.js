@@ -1,6 +1,7 @@
 import {esc,delay,date,range,delaysTitle,colorDelay,scaleLegend,markTip,tipText,hiddenTable,empty,pct0,backBtn,MIN_DAYS,stat} from './utils.js';
 import {korean,localeUtils,localizeTrain} from './locale.js';
 import {KOREA} from './korea.js';
+import {RAIL} from './rail.js';
 const percentile=(xs,p)=>{const a=xs.filter(v=>v!=null).sort((a,b)=>a-b);return a.length?a[Math.min(a.length-1,Math.ceil(a.length*p)-1)]:null;};
 // A stop is matched across timetable versions by its station and which visit it is, because a train can call at the same station twice (Hongseong, on the ITX-Maum loop).
 const stopKeys=stops=>{const seen=new Map();return stops.map(s=>{const name=s.station_ko||s.station,n=seen.get(name)||0;seen.set(name,n+1);return `${name}#${n}`;});};
@@ -20,8 +21,11 @@ function glyphHTML(stops,stationIndex){
  const known=new Map((stationIndex?.stations||[]).filter(s=>s.latitude!=null).map(s=>[s.id,s])),route=stops.map(s=>known.get(s.station_id)).filter(Boolean);
  if(route.length<stops.length)return '';
  const point=project,path=outline,width=GLYPH_WIDTH;
+ // Between two stops the route follows the track points in RAIL, in the stored order of the sorted pair; a pair it lacks stays a straight line.
+ const track=(a,b)=>{const inner=RAIL[a.id<b.id?`${a.id}|${b.id}`:`${b.id}|${a.id}`]||[];return a.id<b.id?inner:[...inner].reverse();};
+ const line=route.flatMap((s,i)=>[...(i?track(route[i-1],s):[]),[s.longitude,s.latitude]]);
  const [x1,y1]=point(route[0].longitude,route[0].latitude),[x2,y2]=point(route.at(-1).longitude,route.at(-1).latitude);
- return `<svg class="train-glyph" aria-hidden="true" focusable="false" width="${width}" height="${GLYPH_HEIGHT}" viewBox="0 0 ${width} ${GLYPH_HEIGHT}"><path class="glyph-land" d="M${path(KOREA)}Z"/><path class="glyph-route" d="M${path(route.map(s=>[s.longitude,s.latitude]))}"/><circle class="glyph-end" cx="${x1}" cy="${y1}" r="2.6"/><circle class="glyph-end" cx="${x2}" cy="${y2}" r="2.6"/></svg>`;
+ return `<svg class="train-glyph" aria-hidden="true" focusable="false" width="${width}" height="${GLYPH_HEIGHT}" viewBox="0 0 ${width} ${GLYPH_HEIGHT}"><path class="glyph-land" d="M${path(KOREA)}Z"/><path class="glyph-route" d="M${path(line)}"/><circle class="glyph-end" cx="${x1}" cy="${y1}" r="2.6"/><circle class="glyph-end" cx="${x2}" cy="${y2}" r="2.6"/></svg>`;
 }
 // One dot per recorded day, placed at its delay in whole minutes. Days with the same delay stack in a small grid centered on that minute; on a narrow track packRailDots in app.js lays the dots out again so stacks do not overlap.
 // A day later than the end of the axis (max) is drawn at the track's end with an arrow pointing out (the .out dots, one stack whose extra columns step inward by ARROW_STEP px). Delays before the start of the axis stay plain dots at its start.
