@@ -43,7 +43,7 @@ export function pageInfo(train,locale='en'){
   description:`Korail ${name} from ${train.origin} to ${train.destination}: ${w.share_punctual==null?'reported arrival delays':`${pct0(w.share_punctual)} of stops were within 5 minutes of schedule`} over the past ${span}.`};
 }
 export function renderTrain(train,allDays=[],stationIndex=null,locale='en',hasStation=()=>false){
- const ko=korean(locale),{date,range,span,delay,minutes,scaleLegend,backBtn}=localeUtils(locale);
+ const ko=korean(locale),{date,range,span,delay,minutes,scaleLegend,backBtn,metaLine}=localeUtils(locale);
  // A stop name leads to its station page when there is one. The link looks like the text around it.
  const stopName=s=>hasStation(s.station_id)?`<a class="plain-link" href="${ko?'ko/':''}station/${encodeURIComponent(s.station_id)}/">${esc(s.station)}</a>`:esc(s.station);
  if(ko&&train)train={...localizeTrain(train),timetables:train.timetables.map(t=>({...t,stops:t.stops.map(s=>({...s,station:s.station_ko||s.station}))}))};
@@ -55,7 +55,7 @@ export function renderTrain(train,allDays=[],stationIndex=null,locale='en',hasSt
  // Rows follow the latest schedule; each historical value belongs to the matching station visit in that run's own timetable.
  const valuesFor=(r,key)=>{const s=getStops(r)[keyed.get(r.timetable)?.indexOf(key)];return s?.arrival!=null?r.delays?.[s.ordinal]??null:null;};
  const finalFor=r=>{const s=getStops(r).filter(s=>s.arrival!=null).at(-1);return s?r.delays?.[s.ordinal]??null:null;};
- const head=(stats='')=>`<div class="train-intro train-head"><div class="train-lead">${backBtn}<div><h1>${esc(train.type)} <span class="train-number">${train.number}</span><span class="h1-sep"> · </span><span class="route"><span class="nb">${esc(train.origin)}</span> <span class="nb">→ ${esc(train.destination)}</span></span></h1><p class="meta"><span class="meta-line">${clockText(origin.departure,origin.departure_day_offset)} → ${clockText(dest.arrival,dest.arrival_day_offset)} · ${ko?`총 ${stops.length}개 역`:`${stops.length} stops`}</span><span class="meta-sep"> · </span><span class="meta-line">${span(w.from,w.to)} · <span class="nb">${ko?`운행 기록 ${ok.length}건`:`${ok.length} ${ok.length===1?'run':'runs'}`}</span></span></p>${stats}</div></div>${glyphHTML(stops,stationIndex)}</div>`;
+ const head=(stats='')=>`<div class="train-intro train-head"><div class="train-lead">${backBtn}<div><h1>${esc(train.type)} <span class="train-number">${train.number}</span><span class="h1-sep"> · </span><span class="route"><span class="nb">${esc(train.origin)}</span> <span class="nb">→ ${esc(train.destination)}</span></span></h1><p class="meta">${metaLine(`${clockText(origin.departure,origin.departure_day_offset)} → ${clockText(dest.arrival,dest.arrival_day_offset)} · ${ko?`총 ${stops.length}개 역`:`${stops.length} stops`}`,`${span(w.from,w.to)} · <span class="nb">${ko?`운행 기록 ${ok.length}건`:`${ok.length} ${ok.length===1?'run':'runs'}`}</span>`,ko?'%는 도착 기록 중 5분 이내에 도착한&nbsp;비율':'% = share of stops within 5&nbsp;min')}</p>${stats}</div></div>${glyphHTML(stops,stationIndex)}</div>`;
  if(!ok.length)return head()+empty(ko?'이 기간의 운행 기록이 없습니다.':'No recorded runs in the past month.');
  const finals=ok.map(finalFor).filter(v=>v!=null);
  const currentKeys=stopKeys(stops);

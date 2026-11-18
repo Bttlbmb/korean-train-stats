@@ -57,15 +57,15 @@ function tableRow(r,locale){
   +`<td class="arr">${time}</td><td class="t"><a href="${href(r.id,locale)}">${trainName(r,locale)}</a></td><td class="r">${toward}</td><td class="s">${bar(s)}</td></tr>`;
 }
 export function renderStation(station,rows,month,locale='en'){
- const ko=locale==='ko',L=localeUtils(locale),{backBtn,range,span,shareLegend}=L,t=(en,kr)=>ko?kr:en;
+ const ko=locale==='ko',L=localeUtils(locale),{backBtn,range,span,shareLegend,metaLine}=L,t=(en,kr)=>ko?kr:en;
  const {arrivals,share:all}=figures(rows||[]);
  if(!station||!arrivals)return empty(t('No reported stops at this station in the past month.','이 기간에 이 역의 도착 기록이 없습니다.'));
  const name=place(station.name,locale),starts=rows.filter(r=>r.starts).length,trains=trainCount(rows),calls=rows.length!==trains;
  const types=GROUPS.map(g=>({g,rows:rows.filter(r=>group(r.type)===g)})).filter(x=>x.rows.length),typed=types.filter(x=>x.g!=='Other'&&figures(x.rows).arrivals);
  const label=g=>ko?localizeTrain({type:g}).type:g;
  const stats=stat(pct0(all),t('stops within 5 min','5분 이내 도착 비율'))+(typed.length>1?typed.map(x=>stat(pct0(share(x.rows)),esc(label(x.g)))).join(''):'');
- const meta=ko?`열차 ${num(trains)}편 정차${starts?` · 그중 ${num(starts)}편은 이 역에서 출발`:''}</span><span class="meta-sep"> · </span><span class="meta-line">${span(month.from,month.to)} · 도착 기록 ${num(arrivals)}건`:`${num(trains)} ${trains===1?'train stops':'trains stop'} here${starts?` · ${num(starts)} ${starts===1?'starts':'start'} here`:''}</span><span class="meta-sep"> · </span><span class="meta-line">${span(month.from,month.to)} · ${num(arrivals)} stops`;
- const head=`<div class="train-intro train-head"><div class="train-lead">${backBtn}<div><h1>${ko?`${name}역`:`${name} station`}</h1><p class="meta"><span class="meta-line">${meta}</span></p><p class="meta train-stats">${stats}</p></div></div>${pinHTML(station)}</div>`;
+ const meta=metaLine(...(ko?[`열차 ${num(trains)}편 정차${starts?` · 그중 ${num(starts)}편은 이 역에서 출발`:''}`,`${span(month.from,month.to)} · 도착 기록 ${num(arrivals)}건`,'%는 도착 기록 중 5분 이내에 도착한&nbsp;비율']:[`${num(trains)} ${trains===1?'train stops':'trains stop'} here${starts?` · ${num(starts)} ${starts===1?'starts':'start'} here`:''}`,`${span(month.from,month.to)} · ${num(arrivals)} stops`,'% = share of stops within 5&nbsp;min']));
+ const head=`<div class="train-intro train-head"><div class="train-lead">${backBtn}<div><h1>${ko?`${name}역`:`${name} station`}</h1><p class="meta">${meta}</p><p class="meta train-stats">${stats}</p></div></div>${pinHTML(station)}</div>`;
  // Final destination means the train's last stop, not any station along its route; a train that ends here gets its own entry, valued with the station's own name.
  const towards=new Map();for(const r of rows)towards.set(r.destination,r.ends?(ko?'이 역이 종착역':'Ends here'):place(r.destination,locale));
  const options=[...towards].sort((a,b)=>ko?a[1].localeCompare(b[1],'ko'):a[1].localeCompare(b[1])).map(([v,l])=>`<option value="${esc(v)}">${l}</option>`).join('');
@@ -77,7 +77,7 @@ export function renderStation(station,rows,month,locale='en'){
   +trainNumberSearch(locale)+`<div class="trains-field"><label for="trains-to">${t('Final destination','종착역')}</label><select id="trains-to"><option value="">${t('Any destination','전체 종착역')}</option>${options}</select></div>`
   +`<div class="trains-field sort-field"><label for="trains-sort">${t('Sort by','정렬 기준')}</label><select id="trains-sort">${SORTS.map(([v,[e,kr]])=>`<option value="${v}">${t(e,kr)}</option>`).join('')}</select></div></form>`
   +`<div class="trains-status" id="trains-status" hidden><p class="meta" id="trains-count" aria-live="polite"${calls?` data-text="${t('{n} of {total} stops','전체 정차 {total}회 중 {n}회')}"`:''}>${calls?t(`${total} of ${total} stops`,`전체 정차 ${total}회 중 ${total}회`):t(`${total} of ${total} trains`,`전체 ${total}편 중 ${total}편`)}</p><button type="button" id="trains-reset" hidden>${t('Reset','초기화')}</button></div>`;
- const legend=`<div class="trains-key">${shareLegend()}<span class="meta">${t(`A dash means fewer than ${MIN_DAYS} recorded days, or a train that starts here`,`도착 기록이 ${MIN_DAYS}일 미만이거나 이 역에서 출발하는 열차는 ‘—’로 표시합니다.`)}</span></div>`;
+ const legend=`<div class="trains-key">${shareLegend('',null)}<span class="meta">${t(`A dash means fewer than ${MIN_DAYS} recorded days, or a train that starts here`,`도착 기록이 ${MIN_DAYS}일 미만이거나 이 역에서 출발하는 열차는 ‘—’로 표시합니다.`)}</span></div>`;
  const th=(name,text,cls='')=>tableHeading(few?'':name,text,cls);
  const table=`<table class="trains-table station-table" role="table"><thead><tr>${th('arr',t('Arrives','도착'))}${th('num',t('Train','열차'))}${th('route',t('Final destination','종착역'))}${th('share',t('Within 5 min','5분 이내 도착 비율'),'s')}</tr></thead><tbody id="trains-rows"${rows.length>ROW_CAP?` data-cap="${ROW_CAP}"`:''}${calls?` data-more="${t('Show all {n} stops','전체 정차 {n}회 보기')}"`:''}>${rows.map(r=>tableRow(r,locale)).join('')}</tbody></table>`
   +`<p class="trains-empty" id="trains-empty" hidden>${t('No trains match these filters.','선택한 조건에 맞는 열차가 없습니다. 조건을 바꾸거나 초기화해 주세요.')}</p>`;

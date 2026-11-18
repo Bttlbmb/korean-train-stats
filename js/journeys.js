@@ -146,7 +146,7 @@ export function renderJourneys(rows,month,locale='en'){
  const ko=locale==='ko',{span:period,metaLine,backBtn}=localeUtils(locale),t=(en,kr)=>ko?kr:en;
  if(!rows?.length||!month?.from)return empty(t(`No journeys with at least ${MIN_TRAINS} trains in the past month.`,`이 기간에 열차가 ${MIN_TRAINS}편 이상인 구간이 없습니다.`));
  const total=num(rows.length);
- const head=`<div class="train-intro train-head"><div class="train-lead">${backBtn}<div><h1>${t('All journeys','전체 구간')}</h1><p class="meta">${metaLine(ko?`구간 ${total}개`:`${total} journeys`,period(month.from,month.to),t('% = arrivals at the second station within 5&nbsp;min','%는 도착역 도착 기록 중 5분 이내에 도착한&nbsp;비율'))}</p></div></div></div>`;
+ const head=`<div class="train-intro train-head"><div class="train-lead">${backBtn}<div><h1>${t('All journeys','전체 구간')}</h1><p class="meta">${metaLine(ko?`구간 ${total}개`:`${total} journeys`,period(month.from,month.to),t('% = share of arrivals at the second station within 5&nbsp;min','%는 도착역 도착 기록 중 5분 이내에 도착한&nbsp;비율'))}</p></div></div></div>`;
  const busiest=[...rows].slice(0,5),least=[...rows].sort((a,b)=>a.share-b.share||b.arrivals-a.arrivals||a.from.localeCompare(b.from)||a.to.localeCompare(b.to)).slice(0,5);
  const lists=`<div class="trains-lists">${card(t('Busiest','열차가 많은 구간'),'',`<div class="rank-rows">${busiest.map(r=>rank(r,locale)).join('')}</div><p class="rank-note">${t('Ranked by the number of trains that call at both.','두 역에 모두 정차하는 열차 수가 많은 순서입니다.')}</p>`)}`
   +`${card(t('Least punctual','5분 이내 도착 비율 하위 구간'),'',`<div class="rank-rows">${least.map(r=>rank(r,locale)).join('')}</div><p class="rank-note">${t(`Journeys with at least ${MIN_TRAINS} trains.`,`열차가 ${MIN_TRAINS}편 이상인 구간을 비교합니다.`)}</p>`)}</div>`;
@@ -155,7 +155,7 @@ export function renderJourneys(rows,month,locale='en'){
   +`<div class="trains-field"><label for="journeys-to">${t('To','도착역')}</label><select id="journeys-to"><option value="">${any}</option></select></div>`
   +`<div class="trains-field sort-field"><label for="journeys-sort">${t('Sort by','정렬 기준')}</label><select id="journeys-sort">${SORTS.map(([v,[e,kr]])=>`<option value="${v}">${t(e,kr)}</option>`).join('')}</select></div></form>`
   +`<div class="trains-status" id="journeys-status" hidden><p class="meta" id="journeys-count" aria-live="polite" data-text="${t('{n} of {total} journeys','전체 {total}개 중 {n}개')}" data-some="${t('{n} journeys','구간 {n}개')}">${ko?`전체 ${total}개 중 ${total}개`:`${total} of ${total} journeys`}</p><button type="button" id="journeys-reset" hidden>${t('Reset','초기화')}</button></div>`
-  +`<div class="trains-key">${ko?localeUtils('ko').shareLegend():shareLegend('','arrivals')}<span class="meta">${t(`A dash means fewer than ${SHOW_TRAINS} trains call at both stations, or fewer than ${MIN_DAYS} recorded days for a train`,`두 역에 모두 정차하는 열차가 ${SHOW_TRAINS}편 미만이거나 열차의 도착 기록이 ${MIN_DAYS}일 미만이면 ‘—’로 표시합니다.`)}</span></div>`
+  +`<div class="trains-key">${ko?localeUtils('ko').shareLegend('',null):shareLegend('',null)}<span class="meta">${t(`A dash means fewer than ${SHOW_TRAINS} trains call at both stations, or fewer than ${MIN_DAYS} recorded days for a train`,`두 역에 모두 정차하는 열차가 ${SHOW_TRAINS}편 미만이거나 열차의 도착 기록이 ${MIN_DAYS}일 미만이면 ‘—’로 표시합니다.`)}</span></div>`
   +`<div class="jres" id="journeys-result" hidden></div>`;
  const table=`<table class="trains-table" role="table" id="journeys-table"><thead><tr>${th('route',t('Journey','구간'))}${th('',t('Served by','정차 열차 종류'))}${th('time',t('Scheduled time','예정 소요 시간'))}${th('num',t('Trains','열차'),'','descending')}${th('share',t('Within 5 min','5분 이내 도착 비율'),'s')}</tr></thead><tbody id="journeys-rows" data-cap="${ROW_CAP}" data-more="${t('Show all {n} journeys','전체 {n}개 보기')}">${rows.map(r=>tableRow(r,locale)).join('')}</tbody></table>`
   +`<p class="trains-empty" id="journeys-empty" hidden>${t('No journeys match these filters.','선택한 조건에 맞는 구간이 없습니다. 조건을 바꾸거나 초기화해 주세요.')}</p>`
@@ -197,11 +197,11 @@ function journeyTrainRow(t,locale){
 // The page for one journey: figures for the whole journey, the delay on arrival by hour of departure, and a table of every train. r is its row of the all-journeys list, stats is pairStats from build-time
 // data (with delay bands).
 export function renderJourney({row:r,stats},month,locale='en'){
- const ko=locale==='ko',{span:period,backBtn,shareLegend:legendOf,scaleLegend}=localeUtils(locale),t=(en,kr)=>ko?kr:en,[a,b]=stationNames(r,locale),A=esc(a),B=esc(b),n=stats.trains.length;
+ const ko=locale==='ko',{span:period,metaLine,backBtn,shareLegend:legendOf,scaleLegend}=localeUtils(locale),t=(en,kr)=>ko?kr:en,[a,b]=stationNames(r,locale),A=esc(a),B=esc(b),n=stats.trains.length;
  if(!n||!stats.reported||!month?.from)return empty(t('No reported arrivals for this journey in the past month.','이 기간에 이 구간의 도착 기록이 없습니다.'));
  const share=stats.within/stats.reported,within10=(stats.bands[0]+stats.bands[1])/stats.reported,within15=stats.within15/stats.reported;
- const stat=fig(pct0(share),t(`arrivals at ${B} within 5 min`,`${B} 도착 기록 중 5분 이내`))+fig(pct0(within10),t('within 10 min','10분 이내'))+fig(pct0(within15),t('within 15 min','15분 이내'))+fig(esc(duration(stats.typical,ko)),t('typical scheduled time','예정 소요 시간'));
- const head=`<div class="train-intro train-head"><div class="train-lead">${backBtn}<div><h1>${A} → ${B}</h1><p class="meta"><span class="meta-line">${ko?`두 역에 모두 정차하는 열차 ${num(n)}편`:`${num(n)} trains call at both stations`}</span><span class="meta-sep"> · </span><span class="meta-line">${period(month.from,month.to)}</span></p><p class="meta train-stats">${stat}</p></div></div></div>`;
+ const stat=fig(pct0(share),t('within 5 min','5분 이내'))+fig(pct0(within10),t('within 10 min','10분 이내'))+fig(pct0(within15),t('within 15 min','15분 이내'))+fig(esc(duration(stats.typical,ko)),t('typical scheduled time','예정 소요 시간'));
+ const head=`<div class="train-intro train-head"><div class="train-lead">${backBtn}<div><h1>${A} → ${B}</h1><p class="meta">${metaLine(ko?`두 역에 모두 정차하는 열차 ${num(n)}편`:`${num(n)} trains call at both stations`,period(month.from,month.to),t(`% = share of arrivals at ${B} within 5&nbsp;min`,`%는 ${B} 도착 기록 중 5분 이내에 도착한&nbsp;비율`))}</p><p class="meta train-stats">${stat}</p></div></div></div>`;
  // The chart: a stacked bar per departure hour in the delay scale, the within-5 share above it, the hour below (the tooltip and the hidden table give the trains). A bar needs HOUR_MIN_ARRIVALS arrivals.
  const hours=hourBuckets(stats),label=i=>BANDS[i][ko?1:0],hh=h=>String(h).padStart(2,'0');
  const cols=hours.map(o=>{
@@ -212,8 +212,8 @@ export function renderJourney({row:r,stats},month,locale='en'){
  // The percent signs need room: the bars hide them when this many columns are too narrow for them (see .hours-wrap in styles.css).
  const fit=[12,16,20,24].find(m=>hours.length<=m);
  const hourTable=hiddenTable(t(`Delay on arrival at ${b} by departure hour`,`${a} 출발 시간대별 ${b} 도착 지연`),[t('Departure hour','출발 시간대'),t('Trains','열차'),t('Reported arrivals','도착 기록'),...BANDS.map((_,i)=>label(i))],hours.map(o=>[`${hh(o.hour)}:00`,trainsText(o.trains,locale),ko?`${num(o.reported)}건`:`${num(o.reported)} ${o.reported===1?'arrival':'arrivals'}`,...o.bands.map(c=>o.reported?`${Math.round(100*c/o.reported)}%`:'—')]));
- const hourCard=card(t('By departure hour','출발 시간대별'),t(`Delay on arrival at ${b}, by hour of departure from ${a}`,`${a} 출발 시간대별 ${b} 도착 지연`),
-  `<div class="trains-key">${scaleLegend()}</div><div class="hours-wrap"><div class="hours f${fit}" role="group" aria-label="${t('Departure hour','출발 시간대')}">${cols}</div></div><div class="hour-axis" aria-hidden="true"><span>${t('Departure hour','출발 시간대(시)')}</span></div><p class="meta chart-hint">${t(`The number above a bar is the share within 5 min. Select a bar to list only the trains that leave in that hour.`,`막대 위 숫자는 5분 이내 도착 비율입니다. 막대를 선택하면 해당 시간대에 출발하는 열차만 표시합니다.`)}</p>${hourTable}`);
+ const hourCard=card(t('By departure hour','출발 시간대별'),t(`Delay on arrival at ${b}`,`${b} 도착 지연`),
+  `<div class="trains-key">${scaleLegend()}</div><div class="hours-wrap"><div class="hours f${fit}" role="group" aria-label="${t('Departure hour','출발 시간대')}">${cols}</div></div><div class="hour-axis" aria-hidden="true"><span>${t('Departure hour','출발 시간대(시)')}</span></div><p class="meta chart-hint">${t('Select a bar to list only the trains that leave in that hour.','막대를 선택하면 해당 시간대에 출발하는 열차만 표시합니다.')}</p>${hourTable}`);
  // The train table works like the all-trains page's: the same ids and data attributes as js/trains-page.js expects.
  const total=num(n);
  const hourOptions=list=>list.map(h=>`<option value="${h}">${hh(h)}:00–${hh(h)}:59</option>`).join(''),
@@ -221,7 +221,7 @@ export function renderJourney({row:r,stats},month,locale='en'){
   arrivalHours=[...new Set(stats.trains.map(x=>Math.floor(x.arr%1440/60)))].sort((x,y)=>x-y);
  const controls=`<form class="trains-filters station-filters" id="trains-filters" hidden>${trainNumberSearch(locale)}${hourField('trains-dep','Departure hour','출발 시간대',hours.map(o=>o.hour))}${hourField('trains-arr','Arrival hour','도착 시간대',arrivalHours)}<div class="trains-field sort-field"><label for="trains-sort">${t('Sort by','정렬 기준')}</label><select id="trains-sort">${JOURNEY_SORTS.map(([v,[e,kr]])=>`<option value="${v}">${t(e,kr)}</option>`).join('')}</select></div></form>`
   +`<div class="trains-status" id="trains-status" hidden><p class="meta" id="trains-count" aria-live="polite">${t(`${total} of ${total} trains`,`전체 ${total}편 중 ${total}편`)}</p><button type="button" id="trains-reset" hidden>${t('Reset','초기화')}</button></div>`;
- const legend=`<div class="trains-key">${legendOf('','arrivals')}</div>`;
+ const legend=`<div class="trains-key">${legendOf('',null)}</div>`;
  const table=`<table class="trains-table journey-table" role="table"><thead><tr>${th('num',t('Train','열차'))}${th('',t(`Departs ${a}`,`${a} 출발`))}${th('arr',t(`Arrives ${b}`,`${b} 도착`))}${th('share',t('Within 5 min','5분 이내 도착 비율'),'s')}</tr></thead><tbody id="trains-rows" data-cap="${ROW_CAP}">${stats.trains.map(x=>journeyTrainRow(x,locale)).join('')}</tbody></table>`
   +`<p class="trains-empty" id="trains-empty" hidden>${t('No trains match these filters.','선택한 조건에 맞는 열차가 없습니다. 조건을 바꾸거나 초기화해 주세요.')}</p>`;
  const trainCard=card(t(`Find a train from ${a} to ${b}`,`${a}에서 ${b}까지 열차 찾기`),'',controls+legend+table,'find');

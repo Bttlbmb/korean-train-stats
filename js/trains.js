@@ -54,7 +54,7 @@ export function renderTrains(rows,month,locale='en'){
   +`<div class="trains-field"><label for="trains-to">Final destination</label><select id="trains-to"><option value="">Any destination</option>${options}</select></div>`
   +`<div class="trains-field sort-field"><label for="trains-sort">Sort by</label><select id="trains-sort">${SORTS.map(([v,t])=>`<option value="${v}">${t}</option>`).join('')}</select></div></form>`
   +`<div class="trains-status" id="trains-status" hidden><p class="meta" id="trains-count" aria-live="polite">${total} of ${total} trains</p><button type="button" id="trains-reset" hidden>Reset</button></div>`
-  +`<div class="trains-key">${shareLegend()}<span class="meta">A dash means fewer than ${MIN_DAYS} recorded days</span></div>`;
+  +`<div class="trains-key">${shareLegend('',null)}<span class="meta">A dash means fewer than ${MIN_DAYS} recorded days</span></div>`;
  const table=`<table class="trains-table" role="table"><thead><tr>${th('num','Train')}${th('route','Route')}${th('dep','Departs')}${th('arr','Arrives')}${th('share','Within 5 min','s')}</tr></thead><tbody id="trains-rows" data-cap="${ROW_CAP}">${rows.map(tableRow).join('')}</tbody></table>`
   +`<p class="trains-empty" id="trains-empty" hidden>No trains match these filters.</p>`;
  return head+lists+card('Find a train','',filters+table,'find');
@@ -80,7 +80,7 @@ function renderKoreanTrains(rows,month){
   +`<div class="trains-field"><label for="trains-to">종착역</label><select id="trains-to"><option value="">전체 종착역</option>${options}</select></div>`
   +`<div class="trains-field sort-field"><label for="trains-sort">정렬 기준</label><select id="trains-sort">${SORTS.map(([v],i)=>`<option value="${v}">${sorts[i]}</option>`).join('')}</select></div></form>`
   +`<div class="trains-status" id="trains-status" hidden><p class="meta" id="trains-count" aria-live="polite">전체 ${total}편 중 ${total}편</p><button type="button" id="trains-reset" hidden>초기화</button></div>`
-  +`<div class="trains-key">${ko.shareLegend()}<span class="meta">운행 기록이 ${MIN_DAYS}일 미만이거나 도착 비율을 계산할 자료가 없으면 ‘—’로 표시합니다.</span></div>`;
+  +`<div class="trains-key">${ko.shareLegend('',null)}<span class="meta">운행 기록이 ${MIN_DAYS}일 미만이거나 도착 비율을 계산할 자료가 없으면 ‘—’로 표시합니다.</span></div>`;
  const table=`<table class="trains-table" role="table"><thead><tr>${th('num','열차')}${th('route','운행 구간')}${th('dep','출발')}${th('arr','도착')}${th('share','5분 이내 도착 비율','s')}</tr></thead><tbody id="trains-rows" data-cap="${ROW_CAP}">${rows.map(r=>tableRow(r,'ko')).join('')}</tbody></table>`
   +`<p class="trains-empty" id="trains-empty" hidden>선택한 조건에 맞는 열차가 없습니다. 조건을 바꾸거나 초기화해 주세요.</p>`;
  return head+lists+card('열차 찾기','열차의 첫 출발역과 마지막 도착역 기준입니다.',filters+table,'find');
