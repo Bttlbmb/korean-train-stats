@@ -198,7 +198,8 @@ let journeyCount=0,journeyPages=0;
   if(stats.typical!==r.mins)fail(`${r.from} → ${r.to}: the search panel gives a typical time of ${stats.typical} minutes, the table ${r.mins}`);
  }
  for(const locale of ['en','ko']){
-  const html=renderJourneys(list,month,locale),info=journeysInfo(list,month,locale);
+  const html=renderJourneys(list,month,locale,pairs.size),info=journeysInfo(list,month,locale);
+  if(!html.includes(pairs.size.toLocaleString('en')))fail(`${locale}: the all-journeys page does not state its ${pairs.size} journeys`);
   const bad=html.replace(/<[^>]*>/g,' ').match(/undefined|NaN|\bnull\b/);if(bad)fail(`${locale} text contains "${bad[0]}"`);
   const links=[...html.matchAll(/<tr data-from="([^"]*)" data-to="([^"]*)"[^>]*data-share="([^"]*)"/g)];
   if(links.length!==list.length)fail(`${locale}: ${links.length} rows for ${list.length} journeys`);
@@ -247,7 +248,7 @@ let journeyCount=0,journeyPages=0;
     journeyPages++;
    }
   }
-  for(const locale of ['en','ko'])for(const m of renderJourneys(list,month,locale).matchAll(/href="(?:ko\/)?(journey\/[^"]+)"/g))if(!addresses.has(m[1]))fail(`${locale}: the all-journeys page links to ${m[1]}, which has no page`);
+  for(const locale of ['en','ko'])for(const m of renderJourneys(list,month,locale,pairs.size).matchAll(/href="(?:ko\/)?(journey\/[^"]+)"/g))if(!addresses.has(m[1]))fail(`${locale}: the all-journeys page links to ${m[1]}, which has no page`);
  }
 }
 console.log(`${pages} train pages rendered, ${empty} without a run in the past month, ${dayPages} day pages rendered, ${stationPages} station pages rendered, ${journeyCount} journeys listed, ${journeyPages} journey pages rendered, ${problems.length} problems.`);

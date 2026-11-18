@@ -66,7 +66,9 @@ export function renderTrain(train,allDays=[],stationIndex=null,locale='en',hasSt
  const all=byStop.flatMap(s=>s.values),max=Math.max(15,Math.ceil((percentile(all,.97)||15)/5)*5),x=v=>(Math.max(-2,Math.min(max,v))+2)/(max+2)*100;
  // The typical delay when late means nothing for a train with no late arrival, so the line leaves it out.
  const late=w.typical_late_delay==null?'':ko?stat(minutes(w.typical_late_delay),'5분 넘게 늦은 도착의 지연 시간 중앙값'):stat(delay(w.typical_late_delay),'typical delay when late');
- const stats=ko?`<p class="meta train-stats">${stat(pct0(w.share_punctual),'5분 이내 도착 비율')}${stat(`${w.final_reported??finals.length}일 중 ${w.final_on_time}일`,`종착역 ${esc(dest.station)} 도착이 5분 이내`)}${late}</p>`:`<p class="meta train-stats">${stat(pct0(w.share_punctual),'stops within 5 min')}${stat(`${w.final_on_time} of ${w.final_reported??finals.length}`,`days on time at ${esc(dest.station)}`)}${late}</p>`;
+ // The longest delay of any recorded stop on any day; like the typical delay, it is left out for a train that was never more than 5 minutes late.
+ const worst=Math.max(...all),longest=worst>5?ko?stat(minutes(worst),'가장 긴 지연'):stat(delay(worst),'longest delay'):'';
+ const stats=ko?`<p class="meta train-stats">${stat(pct0(w.share_punctual),'5분 이내 도착 비율')}${stat(`${w.final_reported??finals.length}일 중 ${w.final_on_time}일`,`종착역 ${esc(dest.station)} 도착이 5분 이내`)}${late}${longest}</p>`:`<p class="meta train-stats">${stat(pct0(w.share_punctual),'stops within 5 min')}${stat(`${w.final_on_time} of ${w.final_reported??finals.length}`,`days on time at ${esc(dest.station)}`)}${late}${longest}</p>`;
  // A short record has no share on the list pages, so the page says why its own figures stay.
  const short=ok.length<MIN_DAYS?`<p class="meta train-stats">${ko?`기록이 ${ok.length}일뿐이어서 열차·역 목록에는 비율을 표시하지 않습니다.`:`Only ${ok.length} recorded ${ok.length===1?'day':'days'}: too few to show a share in the train and station lists.`}</p>`:'';
  const timed=byStop.filter(s=>s.arrival!=null);

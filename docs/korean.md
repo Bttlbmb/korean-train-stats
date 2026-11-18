@@ -21,6 +21,7 @@ Railway labels follow the references below. Statistical labels describe this sit
 | Timetable change | 시간표 변경 | A changed schedule, not proof of a delay. |
 | Where a train started or ends | 이 역에서 출발 · 이 역이 종착역 | Station pages. 출발 is the departing event, so a count of trains that start at the station reads 그중 N편은 이 역에서 출발, not 출발 N편. |
 | First and last station filters, all-trains page | 출발역 · 종착역 | They match a train’s first and last station only; 도착역 would suggest any arrival stop. |
+| Station page filter “Going to” | 도착역 · 전체 역 | It matches any station the train calls at after this one, which is what 도착역 means. |
 | Train-number search | 열차 번호 · 예: 237 | Use the complete number within the current list. Normalization and URL state follow the shared search controls in `BUILD_NOTES.md`. |
 | Retry a failed request | 다시 시도 | A loading failure is distinct from no matching journey or no recorded run. Retained figures keep their dates. |
 | A journey between two stations (all-journeys page) | 구간 · 출발역 · 도착역 | 전체 구간 is the page; the From and To dropdowns are 출발역 and 도착역 because any station may be chosen. 운행 구간 on the all-trains page means a train’s own route, so 구간 alone is the journey. Card notes say 도착역 도착 기록 중, never 두 번째 역. Unreviewed by a native reader. |
@@ -34,7 +35,7 @@ Railway labels follow the references below. Statistical labels describe this sit
 | Departure hour and Arrival hour selects, and Any hour | 출발 시간대 · 도착 시간대 · 전체 시간대 | Options read 05:00–05:59 in both languages. 출발 시간대(시) on the chart axis labels the hour numbers. |
 | Naming two stations in a sentence | 서울에서 부산까지 · 서울에 정차한 뒤 부산에 정차하는 | Never 서울과/와 부산: 와/과 changes with the last sound of the name, while 에 and 에서 do not. |
 | Hidden hour table cells | 열차 5편 · 98건 | Counts carry their counter; the English cells read “5 trains” and “98 arrivals”. |
-| Final destination filter and column | 종착역 | English “Final destination”; matches the train’s last stop, not intermediate stations. The unfiltered option is 전체 종착역 (“Any destination”) on station and all-trains pages. Sort labels end in 순 (열차 번호 순, 종착역 순, 이름 순). |
+| Final destination filter and column | 종착역 | English “Final destination”; matches the train’s last stop, not intermediate stations. The unfiltered option is 전체 종착역 (“Any destination”) on the all-trains page; the station page’s column keeps the label. Sort labels end in 순 (열차 번호 순, 종착역 순, 이름 순). |
 | Trains stopping at a station | 정차 열차 · 열차 N편 정차 | Count distinct source train IDs (number plus display type), not visits. Table sort and column labels use 정차 열차; the type column is 정차 열차 종류. Where a loop train calls twice (Hongseong) the table counts stops: 전체 정차 N회 중 N회. |
 | Back arrow after another page of the site | 이전 페이지로 | The arrow goes back one step; its label when it leads to the front page is 처음으로. |
 | Short record on a train page | 기록이 N일뿐이어서 열차·역 목록에는 비율을 표시하지 않습니다 | A train with fewer than 10 recorded days keeps its figures; this line says why the lists show a dash. |

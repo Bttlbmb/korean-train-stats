@@ -9,7 +9,7 @@ const form=document.querySelector('#trains-filters');
 if(form){
  const $=s=>document.querySelector(s),status=$('#trains-status'),count=$('#trains-count'),reset=$('#trains-reset'),none=$('#trains-empty'),body=$('#trains-rows'),
   from=$('#trains-from'),to=$('#trains-to'),q=$('#stations-q'),number=$('#trains-number'),depHour=$('#trains-dep'),arrHour=$('#trains-arr'),bars=[...document.querySelectorAll('.hour-col[data-hour]')],sortSelect=$('#trains-sort'),heads=[...document.querySelectorAll('.trains-table th[data-key]')],boxes=[...form.querySelectorAll('input[type=checkbox]')],
-  rows=[...body.children],format=n=>n.toLocaleString(ko?'ko-KR':'en'),stationLabels=new Map([...((from||to)?.options||[])].map(o=>[o.value,o.textContent])),value=select=>select?.value||'',hourOf=minutes=>Math.floor(minutes%1440/60);
+  journey=$('#trains-journey'),journeys=new Map([...(to?.options||[])].map(o=>[o.value,o.dataset.journey])),rows=[...body.children],format=n=>n.toLocaleString(ko?'ko-KR':'en'),stationLabels=new Map([...((from||to)?.options||[])].map(o=>[o.value,o.textContent])),value=select=>select?.value||'',hourOf=minutes=>Math.floor(minutes%1440/60);
  rows.forEach((row,i)=>row._i=i);
  let key='',dir='ascending',all=false;
  // A table whose body sets data-cap shows that many trains until the reader asks for all of them. The other rows stay in the page, and filters and sorting work on every row.
@@ -24,12 +24,14 @@ if(form){
  // A station with one train type has no type boxes, and every row stays.
  const ticked=()=>boxes.length?new Set(boxes.filter(b=>b.checked).map(b=>b.value)):{has:()=>true};
  const typed=(on,row)=>row.dataset.type.split(' ').some(type=>on.has(type)),words=()=>q?stationSearchKey(q.value):'';
+ // A row's data-from and data-to hold one station name, or several joined by | (a station page's Going to: every station the train calls at later).
+ const names=(row,key)=>row.dataset[key].split('|');
  // Station options depend on type and the other endpoint, not a partially entered train number.
  // Apply number matching afterward so typing a number does not silently clear the station choices.
  function fill(select,own,other,otherKey){
   if(!select)return;
   const on=ticked(),found=new Set();
-  for(const row of rows)if(typed(on,row)&&(!other||row.dataset[otherKey]===other))found.add(row.dataset[own]);
+  for(const row of rows)if(typed(on,row)&&(!other||names(row,otherKey).includes(other)))for(const name of names(row,own))found.add(name);
   const current=select.value;
   select.replaceChildren(new Option(select.options[0].textContent,''),...[...found].sort((a,b)=>ko?(stationLabels.get(a)||a).localeCompare(stationLabels.get(b)||b,'ko'):(stationLabels.get(a)||a).localeCompare(stationLabels.get(b)||b)).map(s=>new Option(stationLabels.get(s)||s,s)));
   select.value=found.has(current)?current:'';
@@ -37,8 +39,10 @@ if(form){
  const options=()=>{fill(from,'from',value(to),'to');fill(to,'to',value(from),'from');fill(from,'from',value(to),'to');};
  function apply(){
   const on=ticked(),word=words(),train=number?trainNumberKey(number.value):'';let n=0;
-  for(const row of rows){const ok=typed(on,row)&&(!value(from)||row.dataset.from===value(from))&&(!value(to)||row.dataset.to===value(to))&&(!word||row.dataset.search.includes(word))&&(!train||trainNumberKey(row.dataset.num)===train)&&(!value(depHour)||hourOf(row.dataset.dep)===+value(depHour))&&(!value(arrHour)||hourOf(row.dataset.arr)===+value(arrHour));row.hidden=!ok;if(ok)n++;}
+  for(const row of rows){const ok=typed(on,row)&&(!value(from)||names(row,'from').includes(value(from)))&&(!value(to)||names(row,'to').includes(value(to)))&&(!word||row.dataset.search.includes(word))&&(!train||trainNumberKey(row.dataset.num)===train)&&(!value(depHour)||hourOf(row.dataset.dep)===+value(depHour))&&(!value(arrHour)||hourOf(row.dataset.arr)===+value(arrHour));row.hidden=!ok;if(ok)n++;}
   count.textContent=(count.dataset.text||(ko?'전체 {total}편 중 {n}편':'{n} of {total} trains')).replace('{n}',format(n)).replace('{total}',format(rows.length));none.hidden=n>0;limit();
+  // A station page links to the journey page from the station to the one chosen, when there is one.
+  if(journey){const page=journeys.get(value(to));journey.hidden=!page;if(page){journey.href=page;journey.textContent=journey.dataset.text.replace('{to}',stationLabels.get(value(to)));}}
  }
  // Trains without a share (a dash) always come last.
  function sort(){

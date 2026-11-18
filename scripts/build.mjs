@@ -9,7 +9,7 @@ import {renderFront,frontInfo,archiveLine} from '../js/front.js';
 import {trainRow,renderTrains,pageInfo as trainsInfo} from '../js/trains.js';
 import {stationRows,renderStation,pageInfo as stationInfo} from '../js/station.js';
 import {stationList,renderStations,pageInfo as stationsInfo} from '../js/stations.js';
-import {journeyData,compactJourneyData,journeyList,journeyPath,pairStats,renderJourneys,renderJourney,journeyPageInfo,journeysCard,pageInfo as journeysInfo} from '../js/journeys.js';
+import {journeyData,journeyCount,compactJourneyData,journeyList,journeyPath,pairStats,renderJourneys,renderJourney,journeyPageInfo,journeysCard,journeysFrom,pageInfo as journeysInfo} from '../js/journeys.js';
 import {monthFigures,renderMonth,pageInfo as monthInfo} from '../js/month.js';
 import {esc} from '../js/utils.js';
 import {stationAddresses,addressed} from '../js/addresses.js';
@@ -120,7 +120,7 @@ for(const station of stations.stations){
  const calls=callsAt.get(station.id);
  if(!stationInfo(station,calls,month))continue;
  const address=`station/${station.id}/`;
- for(const locale of ['en','ko'])write(`${locale==='ko'?'ko/':''}${address}index.html`,page(address,stationInfo(station,calls,month,locale),renderStation(station,calls,month,locale)+journeysCard(station,journeyRows,locale),locale));
+ for(const locale of ['en','ko'])write(`${locale==='ko'?'ko/':''}${address}index.html`,page(address,stationInfo(station,calls,month,locale),renderStation(station,calls,month,locale,journeysFrom(station,journeyRows,locale))+journeysCard(station,journeyRows,locale),locale));
  if(station.legacyId!==station.id)moved(`station/${station.legacyId}/`,address);
  stationPages++;addresses.push(address);
 }
@@ -136,7 +136,7 @@ if(stationsInfo(stationRowsAll,month)){
 // The all-journeys page lists the journeys that at least 40 trains make; journeys/data.json lets its search answer any pair of stations.
 // Each listed journey also gets a page at journey/<from>-to-<to>/, built here from the delay bands in the detailed data, so visitors download nothing extra.
 if(journeysInfo(journeyRows,month)){
- for(const locale of ['en','ko'])write(`${locale==='ko'?'ko/':''}journeys/index.html`,page('journeys/',journeysInfo(journeyRows,month,locale),renderJourneys(journeyRows,month,locale),locale));
+ for(const locale of ['en','ko'])write(`${locale==='ko'?'ko/':''}journeys/index.html`,page('journeys/',journeysInfo(journeyRows,month,locale),renderJourneys(journeyRows,month,locale,journeyCount(journeyStops)),locale));
  write('journeys/data.json',JSON.stringify(compactJourneyData(journeyStops)));
  addresses.push('journeys/');
  const stationAt=new Map(journeyStops.stations.map((s,i)=>[s[2],i])),journeyAddresses=new Set();
