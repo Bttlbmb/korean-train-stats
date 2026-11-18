@@ -159,7 +159,7 @@ export function renderJourneys(rows,month,locale='en'){
   +`<div class="jres" id="journeys-result" hidden></div>`;
  const table=`<table class="trains-table" role="table" id="journeys-table"><thead><tr>${th('route',t('Journey','구간'))}${th('',t('Served by','정차 열차 종류'))}${th('time',t('Scheduled time','예정 소요 시간'))}${th('num',t('Trains','열차'),'','descending')}${th('share',t('Within 5 min','5분 이내 도착 비율'),'s')}</tr></thead><tbody id="journeys-rows" data-cap="${ROW_CAP}" data-more="${t('Show all {n} journeys','전체 {n}개 보기')}">${rows.map(r=>tableRow(r,locale)).join('')}</tbody></table>`
   +`<p class="trains-empty" id="journeys-empty" hidden>${t('No journeys match these filters.','선택한 조건에 맞는 구간이 없습니다. 조건을 바꾸거나 초기화해 주세요.')}</p>`
-  +`<p class="rank-note" id="journeys-note">${t(`The table starts with the journeys that at least ${MIN_TRAINS} trains make. Choose a station to list all of its journeys, or two stations to see their trains.`,`표에는 열차가 ${MIN_TRAINS}편 이상인 구간이 먼저 나옵니다. 역을 하나 선택하면 그 역의 모든 구간을, 두 역을 선택하면 두 역 사이의 열차를 확인할 수 있습니다.`)}</p>`;
+  +`<p class="rank-note" id="journeys-note">${t('Choose a station to list all of its journeys, or two stations to see their trains.','역을 하나 선택하면 그 역의 모든 구간을, 두 역을 선택하면 두 역 사이의 열차를 확인할 수 있습니다.')}</p>`;
  return head+lists+card(t('Find a journey','구간 찾기'),'',controls+table,'find');
 }
 
@@ -213,7 +213,7 @@ export function renderJourney({row:r,stats},month,locale='en'){
  const fit=[12,16,20,24].find(m=>hours.length<=m);
  const hourTable=hiddenTable(t(`Delay on arrival at ${b} by departure hour`,`${a} 출발 시간대별 ${b} 도착 지연`),[t('Departure hour','출발 시간대'),t('Trains','열차'),t('Reported arrivals','도착 기록'),...BANDS.map((_,i)=>label(i))],hours.map(o=>[`${hh(o.hour)}:00`,trainsText(o.trains,locale),ko?`${num(o.reported)}건`:`${num(o.reported)} ${o.reported===1?'arrival':'arrivals'}`,...o.bands.map(c=>o.reported?`${Math.round(100*c/o.reported)}%`:'—')]));
  const hourCard=card(t('By departure hour','출발 시간대별'),t(`Delay on arrival at ${b}`,`${b} 도착 지연`),
-  `<div class="trains-key">${scaleLegend()}</div><div class="hours-wrap"><div class="hours f${fit}" role="group" aria-label="${t('Departure hour','출발 시간대')}">${cols}</div></div><div class="hour-axis" aria-hidden="true"><span>${t('Departure hour','출발 시간대(시)')}</span></div><p class="meta chart-hint">${t('Select a bar to list only the trains that leave in that hour.','막대를 선택하면 해당 시간대에 출발하는 열차만 표시합니다.')}</p>${hourTable}`);
+  `<div class="trains-key">${scaleLegend()}</div><div class="hours-wrap"><div class="hours f${fit}" role="group" aria-label="${t('Departure hour','출발 시간대')}">${cols}</div></div><p class="meta chart-hint">${t('Select a bar to list only the trains that leave in that hour.','막대를 선택하면 해당 시간대에 출발하는 열차만 표시합니다.')}</p>${hourTable}`);
  // The train table works like the all-trains page's: the same ids and data attributes as js/trains-page.js expects.
  const total=num(n);
  const hourOptions=list=>list.map(h=>`<option value="${h}">${hh(h)}:00–${hh(h)}:59</option>`).join(''),

@@ -47,8 +47,8 @@ async function render(){
   const periods=[...main.querySelectorAll('.period')];
   periods.forEach((section,i)=>{
    const {from,to}=section.dataset;
-   section.querySelector('.eyebrow').textContent=i===0?localized.date(to,true):localized.range(from,to);
-   if(!ko)section.querySelector('h2').textContent=i===0?`of Korail train stops were within 5 minutes of schedule on ${localized.date(to,true)}.`:`of stops were within 5 minutes of schedule from ${localized.range(from,to)}.`;
+   const eyebrow=section.querySelector('.eyebrow');if(ko||i===0)eyebrow.textContent=i===0?localized.date(to,true):localized.range(from,to);else eyebrow.innerHTML=localized.span(from,to);
+   if(!ko)section.querySelector('h2').textContent=i===0?'of Korail train stops were within 5 minutes of schedule.':'of stops were within 5 minutes of schedule.';
   });
   if(!refreshed){
    // The built canvas has no pixels until its train data loads; keep the accessible data table instead.

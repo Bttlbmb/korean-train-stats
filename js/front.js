@@ -12,7 +12,7 @@ function yesterdayRow(w,s,locale){
  const sub=s.typical_late_delay!=null?(ko?`5분 넘게 늦은 도착의 지연 시간 중앙값: ${localeUtils('ko').minutes(s.typical_late_delay)}`:`Typical delay when late: ${minutes(s.typical_late_delay)}`):'';
  const day=(opts)=>new Date(w.to+'T12:00:00+09:00').toLocaleDateString(ko?'ko-KR':'en-GB',{...opts,timeZone:'Asia/Seoul'}),short=day({weekday:'short',day:'numeric',month:'short'}),fresh=isFresh(w.to);
  if(ko)return period(fresh?`어제 · ${short}`:short,pct(s.share_punctual),'열차의 역별 도착 기록 중 5분 이내에 도착한 비율입니다.',sub,trains.length?trainDotsHTML(trains,locale):'<p class="muted">이 날짜의 열차 자료가 없습니다.</p>',w);
- return period(fresh?`Yesterday · ${short}`:short,pct(s.share_punctual),`of Korail train stops were within 5 minutes of schedule ${fresh?'yesterday':'on '+day({weekday:'long',day:'numeric',month:'long'})}.`,sub,trains.length?trainDotsHTML(trains):'<p class="muted">Train data is not available for this date.</p>',w);
+ return period(fresh?`Yesterday · ${short}`:short,pct(s.share_punctual),'of Korail train stops were within 5 minutes of schedule.',sub,trains.length?trainDotsHTML(trains):'<p class="muted">Train data is not available for this date.</p>',w);
 }
 function monthRow(w,s,days,locale){
  const ko=locale==='ko',localized=localeUtils(locale);
@@ -22,7 +22,6 @@ function monthRow(w,s,days,locale){
  // A day with data is a real link, so crawlers and middle-click reach its page; tabindex -1 keeps the chart one keyboard stop, stepped with the arrow keys.
  const bars=barItems.map(({iso,d},i)=>d?`<a class="col link" href="${ko?'ko/':''}day/${iso}/" tabindex="-1" data-i="${i}"><i style="height:${Math.max(.5,d.share_punctual*100)}%"></i></a>`:`<span class="col" data-i="${i}"><i class="uncollected" style="height:6px"></i></span>`).join('');
  const sub=ko?[s.typical_late_delay!=null?`5분 넘게 늦은 도착의 지연 시간 중앙값: ${localeUtils('ko').minutes(s.typical_late_delay)}`:'',best?`5분 이내 도착 비율이 가장 높은 날: ${localized.date(best.date)} (${pct(best.share_punctual)})`:'',worst?`5분 이내 도착 비율이 가장 낮은 날: ${localized.date(worst.date)} (${pct(worst.share_punctual)})`:''].filter(Boolean).join('<br>'):[s.typical_late_delay!=null?`Typical delay when late: ${minutes(s.typical_late_delay)}`:'',best?`Best day: ${esc(best.weekday)} ${date(best.date)} (${pct(best.share_punctual)})`:'',worst?`Worst day: ${esc(worst.weekday)} ${date(worst.date)} (${pct(worst.share_punctual)})`:''].filter(Boolean).join('<br>');
- const fresh=isFresh(w.to),period30=w.days<30?`the ${w.days} days collected so far`:fresh?'the past 30 days':`the 30 days to ${date(w.to)}`;
  if(ko){
   const label=`${localized.range(w.from,w.to)}의 날짜별 5분 이내 도착 비율입니다. 세로축은 0~100%입니다. 방향키로 날짜를 선택하고 Enter 키로 해당 날짜의 페이지를 엽니다.`;
   const vis=`<div class="bars-wrap"><span class="axis-label" style="bottom:100%">100%</span><span class="axis-label" style="bottom:50%">50%</span><span class="axis-label" style="bottom:0">0%</span><div class="bars" tabindex="0" role="img" aria-label="${esc(label)}">${bars}</div></div><div class="bar-dates"><span class="meta">${localized.date(w.from)}</span><span class="meta">${localized.date(w.to)}</span></div>${localized.shareLegend('bar-legend')}<p class="meta dot-read" id="bar-read" aria-live="polite"></p>${hiddenTable('날짜별 5분 이내 도착 비율',['날짜','5분 이내 도착 비율'],inWindow.map(d=>[d.date,pct(d.share_punctual)]))}`;
@@ -30,7 +29,7 @@ function monthRow(w,s,days,locale){
   return {html:period(eyebrow,pct(s.share_punctual),'열차의 역별 도착 기록 중 5분 이내에 도착한 비율입니다.',sub,vis,w),barItems};
  }
  const vis=`<div class="bars-wrap"><span class="axis-label" style="bottom:100%">100%</span><span class="axis-label" style="bottom:50%">50%</span><span class="axis-label" style="bottom:0">0%</span><div class="bars" tabindex="0" role="img" aria-label="Share of stops within 5 minutes for each day, on a 0 to 100 percent axis, ${esc(range(w.from,w.to))}. Arrow keys step through the days, and Enter opens the selected day’s page.">${bars}</div></div><div class="bar-dates"><span class="meta">${date(w.from)}</span><span class="meta">${date(w.to)}</span></div>${shareLegend('bar-legend')}<p class="meta dot-read" id="bar-read" aria-live="polite"></p>${hiddenTable('Daily punctuality',['Date','Within 5 min'],inWindow.map(d=>[d.date,pct(d.share_punctual)]))}`;
- return {html:period(fresh?`Past 30 days · ${range(w.from,w.to,false)}`:range(w.from,w.to,false),pct(s.share_punctual),`of stops were within 5 minutes of schedule in ${period30}.`,sub,vis,w),barItems};
+ return {html:period(`${w.days===30?'Last 30 days':`${w.days} days`} from ${date(w.from)} to ${date(w.to)}`,pct(s.share_punctual),'of stops were within 5 minutes of schedule.',sub,vis,w),barItems};
 }
 // The lookup row under the two periods: one field for a train number or a station name. js/start.js answers it from find.json, which scripts/build.mjs writes.
 // A div, not a section, so the last .period stays the last section (styles.css removes its bottom padding).

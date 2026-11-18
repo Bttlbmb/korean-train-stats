@@ -185,7 +185,6 @@ header{flex-wrap:wrap}.header-end{margin-left:auto;display:flex;align-items:cent
 .hour-pct,.hour-label{font-size:12px;color:var(--ink)}
 .hour-bar{display:flex;flex-direction:column-reverse;width:100%;max-width:40px;height:104px;border-radius:3px;overflow:hidden;background:var(--line-soft)}
 .hour-bar i{display:block;flex:none;width:100%}.hour-bar .k0{background:var(--ontime)}.hour-bar .k1{background:var(--d2)}.hour-bar .k2{background:var(--d3)}.hour-bar .k3{background:var(--d4)}.hour-bar .k4{background:var(--d5)}
-.hour-axis{display:flex;justify-content:space-between;flex-wrap:wrap;gap:2px 12px;margin-top:8px;font-size:12px;color:var(--muted)}
 @media(max-width:560px){.hours{gap:3px}}
 .journey-table td.times{display:none}
 @media(max-width:700px){.journey-table td.dep,.journey-table td.arr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}.journey-table td.times{display:block}}
