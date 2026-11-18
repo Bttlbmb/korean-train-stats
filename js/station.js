@@ -48,7 +48,7 @@ export function pageInfo(station,rows,month,locale='en'){
 }
 const href=(id,locale)=>`${locale==='ko'?'ko/':''}train/${encodeURIComponent(id)}/`,trainName=(r,locale)=>`${esc(locale==='ko'?localizeTrain(r).type:r.type)} ${esc(r.number)}`;
 const place=(name,locale)=>esc(locale==='ko'?stationName(name):name);
-export const card=(title,note,inner,id='')=>`<div class="chart-card"${id?` id="${id}"`:''}><div class="block-title"><h2>${title}</h2><span class="meta">${esc(note)}</span></div>${inner}</div>`;
+export const card=(title,note,inner,id='')=>`<div class="chart-card"${id?` id="${id}"`:''}><div class="block-title"><h2>${title}</h2>${note?`<span class="meta">${esc(note)}</span>`:''}</div>${inner}</div>`;
 const SORTS=[['',['Arrival time','도착 시각 빠른 순']],['num:ascending',['Train number','열차 번호 순']],['share:descending',['Within 5 min, highest','5분 이내 도착 비율 높은 순']],['share:ascending',['Within 5 min, lowest','5분 이내 도착 비율 낮은 순']],['route:ascending',['Final destination','종착역 순']]];
 function tableRow(r,locale){
  const ko=locale==='ko',s=own(r),toward=r.ends?(ko?'이 역이 종착역':'Ends here'):place(r.destination,locale);
@@ -81,5 +81,5 @@ export function renderStation(station,rows,month,locale='en'){
  const th=(name,text,cls='')=>tableHeading(few?'':name,text,cls);
  const table=`<table class="trains-table station-table" role="table"><thead><tr>${th('arr',t('Arrives','도착'))}${th('num',t('Train','열차'))}${th('route',t('Final destination','종착역'))}${th('share',t('Within 5 min','5분 이내 도착 비율'),'s')}</tr></thead><tbody id="trains-rows"${rows.length>ROW_CAP?` data-cap="${ROW_CAP}"`:''}${calls?` data-more="${t('Show all {n} stops','전체 정차 {n}회 보기')}"`:''}>${rows.map(r=>tableRow(r,locale)).join('')}</tbody></table>`
   +`<p class="trains-empty" id="trains-empty" hidden>${t('No trains match these filters.','선택한 조건에 맞는 열차가 없습니다. 조건을 바꾸거나 초기화해 주세요.')}</p>`;
- return head+card(ko?`${name}역의 열차 찾기`:`Find a train at ${name}`,t('Share of stops within 5 min, past 30 days','도착 기록 중 5분 이내에 도착한 비율'),controls+legend+table,'find');
+ return head+card(ko?`${name}역의 열차 찾기`:`Find a train at ${name}`,'',controls+legend+table,'find');
 }

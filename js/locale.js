@@ -16,7 +16,7 @@ const date = (iso, year=false) => iso ? new Date(iso+'T12:00:00+09:00').toLocale
 }) : '—';
 const range = (a,b,year=true) => a===b ? date(a,year) : `${date(a,year)}–${date(b,year)}`;
 const dayCount = (a,b) => Math.round((Date.parse(b)-Date.parse(a))/864e5)+1;
-const span = (a,b) => `${dayCount(a,b)===30?'최근 30일':`${dayCount(a,b)}일`} · ${range(a,b)}`;
+const span = (a,b) => { const n=dayCount(a,b),label=n===30?'최근 30일':`${n}일`,nb=x=>`<span class="nb">${x}</span>`; return a===b?`${label} (${nb(date(a,true))})`:`${label} (${nb(`${date(a,true)}부터`)} ${nb(`${date(b,true)}까지`)})`; };
 const minutes = n => n>=100 ? `${Math.floor(n/60)}시간${n%60?` ${n%60}분`:''}` : `${n}분`;
 const delay = n => n == null ? '—' : `${n>0?'+':''}${minutes(n)}`;
 const scale = [['ontime','5분 이내'],['d2','6–10분'],['d3','11–20분'],['d4','21–30분'],['d5','30분 초과']];

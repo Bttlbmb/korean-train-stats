@@ -1,4 +1,4 @@
-import {esc,num,pct0,range,span,backBtn,shareLegend,bar,empty,ROW_CAP,MIN_DAYS,trainNumberSearch,tableHeading as th,stat} from './utils.js';
+import {esc,num,pct0,range,span,metaLine,backBtn,shareLegend,bar,empty,ROW_CAP,MIN_DAYS,trainNumberSearch,tableHeading as th,stat} from './utils.js';
 import {localeUtils,localizeTrain,stationName} from './locale.js';
 // The all-trains page (trains/): top lists, filters, and a table with a row for every train that ran in the past month.
 // It needs no browser, so scripts/build.mjs builds the whole page, links included, and trains-page.js only adds the controls.
@@ -25,7 +25,7 @@ export function pageInfo(rows,month,locale='en'){
   description:`${num(rows.length)} Korail trains (KTX, ITX and Mugunghwa) with the share of their stops within 5 minutes of schedule, from ${range(month.from,month.to)}.`};
 }
 const href=(id,locale)=>`${locale==='ko'?'ko/':''}train/${encodeURIComponent(id)}/`,name=(r,locale)=>`${esc(locale==='ko'?localizeTrain(r).type:r.type)} ${esc(r.number)}`;
-const card=(title,note,inner,id='')=>`<div class="chart-card"${id?` id="${id}"`:''}><div class="block-title"><h2>${title}</h2><span class="meta">${esc(note)}</span></div>${inner}</div>`;
+const card=(title,note,inner,id='')=>`<div class="chart-card"${id?` id="${id}"`:''}><div class="block-title"><h2>${title}</h2>${note?`<span class="meta">${esc(note)}</span>`:''}</div>${inner}</div>`;
 const rank=(r,locale)=>`<a class="rank-row" href="${href(r.id,locale)}"><span class="rank-name">${name(r,locale)}</span><span class="rank-route">${esc(locale==='ko'?stationName(r.origin):r.origin)} → ${esc(locale==='ko'?stationName(r.destination):r.destination)}</span><span class="rank-share">${bar(r.share)}</span></a>`;
 const arrival=r=>`${esc(r.arr)}${r.off?`<sup>+${r.off}</sup>`:''}`;
 function tableRow(r,locale){
@@ -43,11 +43,10 @@ export function renderTrains(rows,month,locale='en'){
  const perfect=withShare.filter(r=>r.share>=1).length;
  const tie=(a,b)=>b.stops-a.stops||a.id.localeCompare(b.id);
  const best=[...withShare].sort((a,b)=>b.share-a.share||tie(a,b)).slice(0,5),worst=[...withShare].sort((a,b)=>a.share-b.share||a.stops-b.stops||a.id.localeCompare(b.id)).slice(0,5);
- const note='Stops within 5 min, past 30 days';
- const head=`<div class="train-intro train-head"><div class="train-lead">${backBtn}<div><h1>All trains</h1><p class="meta">${total} trains · ${span(month.from,month.to)}</p>`
+ const head=`<div class="train-intro train-head"><div class="train-lead">${backBtn}<div><h1>All trains</h1><p class="meta">${metaLine(`${total} trains`,span(month.from,month.to),'% = share of stops within 5&nbsp;min')}</p>`
   +`<p class="meta train-stats">${stat(pct0(month.summary.all.share_punctual),'stops within 5 min')}${stat(num(perfect),'trains had no late stop')}</p></div></div></div>`;
- const lists=`<div class="trains-lists">${card('Most punctual',note,`<div class="rank-rows">${best.map(rank).join('')}</div><p class="rank-note">${num(perfect)} trains were within 5 min at every stop.</p>`)}`
-  +`${card('Least punctual',note,`<div class="rank-rows">${worst.map(rank).join('')}</div><p class="rank-note">Trains with at least ${RANK_DAYS} recorded days.</p>`)}</div>`;
+ const lists=`<div class="trains-lists">${card('Most punctual','',`<div class="rank-rows">${best.map(rank).join('')}</div><p class="rank-note">${num(perfect)} trains were within 5 min at every stop.</p>`)}`
+  +`${card('Least punctual','',`<div class="rank-rows">${worst.map(rank).join('')}</div><p class="rank-note">Trains with at least ${RANK_DAYS} recorded days.</p>`)}</div>`;
  const boxes=[];for(const r of rows){const g=group(r.type),box=boxes.find(b=>b.g===g);if(box)box.n++;else boxes.push({g,n:1});}
  const stations=[...new Set(rows.flatMap(r=>[r.origin,r.destination]))].sort((a,b)=>a.localeCompare(b)),options=stations.map(s=>`<option>${esc(s)}</option>`).join('');
  const filters=`<form class="trains-filters" id="trains-filters" hidden><fieldset><legend>Train types</legend><div class="type-chips">${boxes.map(b=>`<label><input type="checkbox" name="type" value="${esc(b.g)}" checked>${esc(b.g)} <span>${num(b.n)}</span></label>`).join('')}</div></fieldset>`
@@ -58,7 +57,7 @@ export function renderTrains(rows,month,locale='en'){
   +`<div class="trains-key">${shareLegend()}<span class="meta">A dash means fewer than ${MIN_DAYS} recorded days</span></div>`;
  const table=`<table class="trains-table" role="table"><thead><tr>${th('num','Train')}${th('route','Route')}${th('dep','Departs')}${th('arr','Arrives')}${th('share','Within 5 min','s')}</tr></thead><tbody id="trains-rows" data-cap="${ROW_CAP}">${rows.map(tableRow).join('')}</tbody></table>`
   +`<p class="trains-empty" id="trains-empty" hidden>No trains match these filters.</p>`;
- return head+lists+card('Find a train','Share of stops within 5 min, past 30 days',filters+table,'find');
+ return head+lists+card('Find a train','',filters+table,'find');
 }
 
 // Korean uses the same row values and thresholds; station filter values remain the public English query keys.
@@ -68,11 +67,10 @@ function renderKoreanTrains(rows,month){
  const ko=localeUtils('ko'),total=num(rows.length),withShare=ranked(rows),perfect=withShare.filter(r=>r.share>=1).length;
  const tie=(a,b)=>b.stops-a.stops||a.id.localeCompare(b.id);
  const best=[...withShare].sort((a,b)=>b.share-a.share||tie(a,b)).slice(0,5),worst=[...withShare].sort((a,b)=>a.share-b.share||a.stops-b.stops||a.id.localeCompare(b.id)).slice(0,5);
- const note='역별 도착 기록 중 5분 이내에 도착한 비율';
- const head=`<div class="train-intro train-head"><div class="train-lead">${ko.backBtn}<div><h1>전체 열차</h1><p class="meta">열차 ${total}편 · ${ko.span(month.from,month.to)}</p>`
+ const head=`<div class="train-intro train-head"><div class="train-lead">${ko.backBtn}<div><h1>전체 열차</h1><p class="meta">${metaLine(`열차 ${total}편`,ko.span(month.from,month.to),'%는 도착 기록 중 5분 이내에 도착한&nbsp;비율')}</p>`
   +`<p class="meta train-stats">${stat(pct0(month.summary.all.share_punctual),'5분 이내 도착 비율')}${stat(num(perfect)+'편','기록된 모든 도착이 5분 이내인 열차')}</p></div></div></div>`;
- const lists=`<div class="trains-lists">${card('5분 이내 도착 비율 상위 열차',note,`<div class="rank-rows">${best.map(r=>rank(r,'ko')).join('')}</div><p class="rank-note">${RANK_DAYS}일 이상 운행 기록이 있는 열차를 비교합니다. 이 중 ${num(perfect)}편은 기록된 모든 도착이 5분 이내입니다.</p>`)}`
-  +`${card('5분 이내 도착 비율 하위 열차',note,`<div class="rank-rows">${worst.map(r=>rank(r,'ko')).join('')}</div><p class="rank-note">${RANK_DAYS}일 이상 운행 기록이 있는 열차를 비교합니다. 지연 정보가 없는 도착 기록은 비율에서 제외합니다.</p>`)}</div>`;
+ const lists=`<div class="trains-lists">${card('5분 이내 도착 비율 상위 열차','',`<div class="rank-rows">${best.map(r=>rank(r,'ko')).join('')}</div><p class="rank-note">${RANK_DAYS}일 이상 운행 기록이 있는 열차를 비교합니다. 이 중 ${num(perfect)}편은 기록된 모든 도착이 5분 이내입니다.</p>`)}`
+  +`${card('5분 이내 도착 비율 하위 열차','',`<div class="rank-rows">${worst.map(r=>rank(r,'ko')).join('')}</div><p class="rank-note">${RANK_DAYS}일 이상 운행 기록이 있는 열차를 비교합니다. 지연 정보가 없는 도착 기록은 비율에서 제외합니다.</p>`)}</div>`;
  const boxes=[];for(const r of rows){const g=group(r.type),box=boxes.find(b=>b.g===g);if(box)box.n++;else boxes.push({g,n:1});}
  const stations=[...new Set(rows.flatMap(r=>[r.origin,r.destination]))].sort((a,b)=>stationName(a).localeCompare(stationName(b),'ko'));
  const options=stations.map(s=>`<option value="${esc(s)}">${esc(stationName(s))}</option>`).join('');
