@@ -1,5 +1,5 @@
 import {esc,num,pct0,delaysTitle,fitting,shareLegend,bar,empty,hiddenTable,ROW_CAP,MIN_DAYS,trainNumberSearch,tableHeading as th,stat as fig} from './utils.js';
-import {localeUtils,localizeTrain} from './locale.js';
+import {localeUtils,localizeTrain,stationName} from './locale.js';
 import {card} from './station.js';
 // The all-journeys page (journeys/): top lists, From and To dropdowns, and a table of every journey that at least 40 trains make, built from the train files.
 // A journey is two distinct stations with one eligible forward segment per train. Its share uses reported arrivals at the destination visit.
@@ -119,6 +119,15 @@ const trainsText=(n,locale)=>locale==='ko'?`열차 ${num(n)}편`:`${num(n)} ${n=
 const duration=(m,ko)=>{const h=Math.floor(m/60),r=m%60;return m<60?(ko?`${m}분`:`${m} min`):ko?`${h}시간${r?` ${r}분`:''}`:`${h} h${r?` ${r} min`:''}`;};
 const clock=m=>`${String(Math.floor(m%1440/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;
 const rank=(r,locale)=>{const [a,b]=stationNames(r,locale);return `<a class="rank-row" href="${href(r,locale)}"><span class="rank-name">${esc(a)} → ${esc(b)}</span><span class="rank-route">${trainsText(r.trains,locale)}</span><span class="rank-share">${bar(r.share)}</span></a>`;};
+// The card at the end of a station page: the busiest journeys that start or end there, each a link to its journey page. Null when the station is in no journey. rows is the all-journeys list, busiest first.
+export const SHOWN_AT_STATION=6;
+export const journeysOfStation=(station,rows)=>rows.filter(r=>r.fromId===station.id||r.toId===station.id).sort((a,b)=>b.trains-a.trains||a.fromId.localeCompare(b.fromId)||a.toId.localeCompare(b.toId));
+export function journeysCard(station,rows,locale='en'){
+ const mine=journeysOfStation(station,rows);if(!mine.length)return '';
+ const ko=locale==='ko',name=ko?stationName(station.name):station.name,shown=mine.slice(0,SHOWN_AT_STATION);
+ const note=mine.length>shown.length?`<p class="rank-note">${ko?`${name}역에서 출발하거나 도착하는 구간 ${num(mine.length)}개 중 열차가 많은 순서입니다.`:`The busiest of ${num(mine.length)} journeys that start or end here.`}</p>`:'';
+ return card(ko?`${name}역의 열차가 많은 구간`:`Busiest journeys at ${name}`,'',`<div class="rank-rows">${shown.map(r=>rank(r,locale)).join('')}</div>${note}`);
+}
 export function tableRow(r,locale){
  const [a,b]=stationNames(r,locale),took=duration(r.mins,locale==='ko'),count=trainsText(r.trains,locale);
  return `<tr data-from="${esc(r.from)}" data-to="${esc(r.to)}" data-num="${r.trains}" data-route="${esc(a+' → '+b)}" data-time="${r.mins}" data-share="${r.share==null?'':r.share}">`

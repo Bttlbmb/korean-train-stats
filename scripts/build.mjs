@@ -9,7 +9,7 @@ import {renderFront,frontInfo,archiveLine} from '../js/front.js';
 import {trainRow,renderTrains,pageInfo as trainsInfo} from '../js/trains.js';
 import {stationRows,renderStation,pageInfo as stationInfo} from '../js/station.js';
 import {stationList,renderStations,pageInfo as stationsInfo} from '../js/stations.js';
-import {journeyData,compactJourneyData,journeyList,journeyPath,pairStats,renderJourneys,renderJourney,journeyPageInfo,pageInfo as journeysInfo} from '../js/journeys.js';
+import {journeyData,compactJourneyData,journeyList,journeyPath,pairStats,renderJourneys,renderJourney,journeyPageInfo,journeysCard,pageInfo as journeysInfo} from '../js/journeys.js';
 import {monthFigures,renderMonth,pageInfo as monthInfo} from '../js/month.js';
 import {esc} from '../js/utils.js';
 import {stationAddresses,addressed} from '../js/addresses.js';
@@ -112,13 +112,15 @@ if(trainsInfo(rows,month)){
  for(const locale of ['en','ko'])write(`${locale==='ko'?'ko/':''}trains/index.html`,page('trains/',trainsInfo(rows,month,locale),renderTrains(rows,month,locale),locale));
  addresses.push('trains/');
 }
+// The journeys, computed before the station pages because each station page ends with its busiest ones.
+const journeyStops=journeyData([...trainData.values()],stations.stations,true),journeyRows=journeyList(journeyStops);
 // A station page for each station where a train reported an arrival in the past month.
 let stationPages=0;
 for(const station of stations.stations){
  const calls=callsAt.get(station.id);
  if(!stationInfo(station,calls,month))continue;
  const address=`station/${station.id}/`;
- for(const locale of ['en','ko'])write(`${locale==='ko'?'ko/':''}${address}index.html`,page(address,stationInfo(station,calls,month,locale),renderStation(station,calls,month,locale),locale));
+ for(const locale of ['en','ko'])write(`${locale==='ko'?'ko/':''}${address}index.html`,page(address,stationInfo(station,calls,month,locale),renderStation(station,calls,month,locale)+journeysCard(station,journeyRows,locale),locale));
  if(station.legacyId!==station.id)moved(`station/${station.legacyId}/`,address);
  stationPages++;addresses.push(address);
 }
@@ -132,8 +134,7 @@ if(stationsInfo(stationRowsAll,month)){
  addresses.push('stations/');
 }
 // The all-journeys page lists the journeys that at least 40 trains make; journeys/data.json lets its search answer any pair of stations.
-// Each listed journey also gets a page at journey/<from ID>-to-<to ID>/, built here from the delay bands in the detailed data, so visitors download nothing extra.
-const journeyStops=journeyData([...trainData.values()],stations.stations,true),journeyRows=journeyList(journeyStops);
+// Each listed journey also gets a page at journey/<from>-to-<to>/, built here from the delay bands in the detailed data, so visitors download nothing extra.
 if(journeysInfo(journeyRows,month)){
  for(const locale of ['en','ko'])write(`${locale==='ko'?'ko/':''}journeys/index.html`,page('journeys/',journeysInfo(journeyRows,month,locale),renderJourneys(journeyRows,month,locale),locale));
  write('journeys/data.json',JSON.stringify(compactJourneyData(journeyStops)));

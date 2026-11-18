@@ -20,7 +20,7 @@ const {trainRow,renderTrains,pageInfo:trainsInfo}=await import(pathToFileURL(pat
 const {stationRows,renderStation,pageInfo:stationInfo}=await import(pathToFileURL(path.join(root,'js/station.js')));
 const {stationList,renderStations,pageInfo:stationsInfo}=await import(pathToFileURL(path.join(root,'js/stations.js')));
 const {ROW_CAP,pct0,stationSearchKey}=await import(pathToFileURL(path.join(root,'js/utils.js')));
-const {journeyData,journeyList,journeysAt,journeyCount:pairCount,pairStats,resultHTML,renderJourneys,renderJourney,journeyPageInfo,journeyPath,hourBuckets,pageInfo:journeysInfo,MIN_TRAINS}=await import(pathToFileURL(path.join(root,'js/journeys.js')));
+const {journeyData,journeyList,journeysAt,journeyCount:pairCount,pairStats,resultHTML,renderJourneys,renderJourney,journeyPageInfo,journeyPath,journeysCard,journeysOfStation,SHOWN_AT_STATION,hourBuckets,pageInfo:journeysInfo,MIN_TRAINS}=await import(pathToFileURL(path.join(root,'js/journeys.js')));
 const {stationAddresses,addressed}=await import(pathToFileURL(path.join(root,'js/addresses.js')));
 // Station pages are addressed by name, as the build reads the files (js/addresses.js).
 const rawRead=file=>JSON.parse(fs.readFileSync(data+file,'utf8')),slugs=stationAddresses(rawRead('stations/index.json').stations),read=file=>addressed(file,rawRead(file),slugs),stations=read('stations/index.json'),days=read('days.json').days;
@@ -207,6 +207,18 @@ let journeyCount=0,journeyPages=0;
   const panel=resultHTML(pairStats(stops,0,1),stops.stations[0],stops.stations[1],locale).replace(/<[^>]*>/g,' ').match(/undefined|NaN|\bnull\b/);if(panel)fail(`${locale} panel contains "${panel[0]}"`);
  }
 
+ // The card at the end of a station page: the busiest journeys that start or end there, as many as SHOWN_AT_STATION, busiest first, each linking to its journey page; none for a station in no journey.
+ for(const station of stations.stations){
+  const mine=journeysOfStation(station,list);
+  for(const locale of ['en','ko']){
+   const html=journeysCard(station,list,locale),rows=[...html.matchAll(/<a class="rank-row" href="([^"]*)"/g)].map(m=>m[1]);
+   if(!mine.length){if(html)fail(`${station.id} (${locale}): a card for a station in no journey`);continue;}
+   const want=mine.slice(0,SHOWN_AT_STATION).map(r=>(locale==='ko'?'ko/':'')+journeyPath(r.fromId,r.toId));
+   if(JSON.stringify(rows)!==JSON.stringify(want))fail(`${station.id} (${locale}): the card links ${rows.join(', ')}, not ${want.join(', ')}`);
+   if(rows.some((_,i)=>i&&mine[i].trains>mine[i-1].trains))fail(`${station.id}: the card is not busiest first`);
+   const bad=html.replace(/<[^>]*>/g,' ').match(/undefined|NaN|\bnull\b/);if(bad)fail(`${station.id} (${locale}): the card contains "${bad[0]}"`);
+  }
+ }
  // A page for each listed journey, built from the detailed data: its headline within 5, 10 and 15 minutes must match the direct recount, its table must have a row per train, its hidden hour table must add up to
  // the journey's trains and arrivals, every address must be unique, and every link to a journey page on the all-journeys page must reach one of them.
  {
