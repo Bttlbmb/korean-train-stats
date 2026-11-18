@@ -21,7 +21,9 @@ const {stationRows,renderStation,pageInfo:stationInfo}=await import(pathToFileUR
 const {stationList,renderStations,pageInfo:stationsInfo}=await import(pathToFileURL(path.join(root,'js/stations.js')));
 const {ROW_CAP,pct0,stationSearchKey}=await import(pathToFileURL(path.join(root,'js/utils.js')));
 const {journeyData,journeyList,journeysAt,journeyCount:pairCount,pairStats,resultHTML,renderJourneys,renderJourney,journeyPageInfo,journeyPath,hourBuckets,pageInfo:journeysInfo,MIN_TRAINS}=await import(pathToFileURL(path.join(root,'js/journeys.js')));
-const read=file=>JSON.parse(fs.readFileSync(data+file,'utf8')),stations=read('stations/index.json'),days=read('days.json').days;
+const {stationAddresses,addressed}=await import(pathToFileURL(path.join(root,'js/addresses.js')));
+// Station pages are addressed by name, as the build reads the files (js/addresses.js).
+const rawRead=file=>JSON.parse(fs.readFileSync(data+file,'utf8')),slugs=stationAddresses(rawRead('stations/index.json').stations),read=file=>addressed(file,rawRead(file),slugs),stations=read('stations/index.json'),days=read('days.json').days;
 const problems=[];let pages=0,empty=0;
 // Station lookups accept common spelling and suffix variants in either language.
 for(const [query,name] of [['Haengshin','Haengsin'],['Cheonan Asan','Cheonan-Asan'],['Gwangju-Songjeong','Gwangju Songjeong'],['Gimcheon Gumi','Gimcheon (Gumi)'],['SEOUL Station','Seoul'],['SeoulStation','Seoul'],['서울역','서울'],['천안 아산역','천안아산'],['Jinbu (Odaesan) Station','Jinbu (Odaesan)']]){

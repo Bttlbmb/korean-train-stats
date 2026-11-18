@@ -20,12 +20,15 @@ const local=url=>{const p=decodeURIComponent(new URL(url).pathname).slice(1);ret
 const exists=file=>fs.existsSync(path.join(out,file));
 const ids=file=>new Set([...built.get(file).matchAll(/\bid=["']([^"']+)["']/g)].map(m=>m[1]));
 const hasClass=(a,name)=>(a.class||'').split(/\s+/).includes(name);
-const canonicalURLs=new Set();let pages=0,links=0,resources=0,alternates=0,pairs=0;
+const canonicalURLs=new Set();let pages=0,links=0,resources=0,alternates=0,pairs=0,moves=0;
 for(const [file,html] of built){
  const parsed=tags(html),url=address(file),base=new URL(parsed.find(t=>t.tag==='base')?.a.href||url,url);
  const lang=parsed.find(t=>t.tag==='html')?.a.lang;
- const noindex=parsed.some(t=>t.tag==='meta'&&t.a.name==='robots'&&/\bnoindex\b/.test(t.a.content||''));
  const canonical=parsed.filter(t=>t.tag==='link'&&t.a.rel==='canonical').map(t=>new URL(t.a.href,base).href);
+ // A pointer page (the old address of a station or journey that took a name) is not indexable itself: its refresh and canonical must name a built page that is not a pointer.
+ const refresh=parsed.find(t=>t.tag==='meta'&&(t.a['http-equiv']||'').toLowerCase()==='refresh');
+ if(refresh){const raw=(refresh.a.content||'').split('url=')[1],to=raw&&new URL(raw,SITE).href;if(!to||canonical.length!==1||canonical[0]!==to)fail(file,'pointer page: refresh and canonical differ');else if(!built.has(local(to))||/http-equiv="refresh"/i.test(built.get(local(to))))fail(file,`pointer page: ${to} is missing or is itself a pointer`);moves++;}
+ const noindex=!!refresh||parsed.some(t=>t.tag==='meta'&&t.a.name==='robots'&&/\bnoindex\b/.test(t.a.content||''));
  if(!noindex){
   pages++;for(const u of canonical)canonicalURLs.add(u);
   if(canonical.length!==1||canonical[0]!==url)fail(file,'canonical does not name this page');
@@ -113,7 +116,7 @@ try{
  const allZero=new Map([...fixture].map(([date])=>[date,{...zero,date}])),emptyMonth=monthFigures(key,allZero),emptyHTML=renderMonth(key,emptyMonth);
  assert.equal(emptyMonth.share_punctual,null);assert(emptyHTML.includes('5분 이내 도착 비율 <b>—</b>'));assert(emptyHTML.includes('집계할 수 있는 도착 기록이 없습니다'));assert(!/NaN|undefined|\bnull\b/.test(emptyHTML));assert(!emptyHTML.includes('가장 높은 날'));assert(monthInfo(key,emptyMonth).description.includes('집계 가능한 도착 기록이 없습니다'));
 }catch(e){fail('synthetic month cases',e.message);}
-console.log(`${pages} indexable pages, ${pairs} language pairs, ${links} local navigation links, ${resources} local resources and metadata links, ${alternates} alternates, ${months} calendar months checked; ${problems.length} problems.`);
+console.log(`${pages} indexable pages, ${pairs} language pairs, ${links} local navigation links, ${resources} local resources and metadata links, ${alternates} alternates, ${moves} pointer pages, ${months} calendar months checked; ${problems.length} problems.`);
 for(const p of problems.slice(0,20))console.log('  '+p);
 if(problems.length>20)console.log(`  and ${problems.length-20} more`);
 process.exit(problems.length?1:0);

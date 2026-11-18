@@ -1,4 +1,4 @@
-import {esc,delay,date,range,colorDelay,scaleLegend,markTip,tipText,hiddenTable,empty,pct0,backBtn,MIN_DAYS,stat} from './utils.js';
+import {esc,delay,date,range,delaysTitle,colorDelay,scaleLegend,markTip,tipText,hiddenTable,empty,pct0,backBtn,MIN_DAYS,stat} from './utils.js';
 import {korean,localeUtils,localizeTrain} from './locale.js';
 import {KOREA} from './korea.js';
 const percentile=(xs,p)=>{const a=xs.filter(v=>v!=null).sort((a,b)=>a-b);return a.length?a[Math.min(a.length-1,Math.ceil(a.length*p)-1)]:null;};
@@ -37,7 +37,7 @@ export function pageInfo(train,locale='en'){
   depart=hm(stops[0]?.departure,stops[0]?.departure_day_offset),arrive=hm(stops.at(-1)?.arrival,stops.at(-1)?.arrival_day_offset),times=depart&&arrive?`${depart} → ${arrive}`:'';
  if(ko)return {title:`${name} ${t.origin} → ${t.destination} 도착 지연 · Korean Train Stats`,
   description:`${name}${times?`(${times})`:''}: ${w.share_punctual==null?`${window} 역별 도착 지연 기록.`:`${window} 도착 기록의 ${pct0(w.share_punctual)}가 5분 이내에 도착했습니다.`} 정차역별·날짜별 도착 지연을 확인하세요.`,crumbs:[{name:'전체 열차',to:'trains/'},{name}]};
- return {title:`${name} ${train.origin} → ${train.destination} delays · Korean Train Stats`,
+ return {title:delaysTitle(`${name} ${train.origin} → ${train.destination}`,false),
   description:`${name}${times?`, ${times}`:''}: ${w.share_punctual==null?'reported arrival delays':`${pct0(w.share_punctual)} of stops were within 5 min of schedule`} over ${window}. Punctuality and delay at every stop.`,crumbs:[{name:'All trains',to:'trains/'},{name}]};
 }
 export function renderTrain(train,allDays=[],stationIndex=null,locale='en',hasStation=()=>false){

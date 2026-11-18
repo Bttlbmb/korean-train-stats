@@ -34,12 +34,15 @@ function monthRow(w,s,days,locale){
 // The lookup row under the two periods: one field for a train number or a station name. js/start.js answers it from find.json, which scripts/build.mjs writes.
 // A div, not a section, so the last .period stays the last section (styles.css removes its bottom padding).
 const findRow=ko=>`<div class="find"><div><h2>${ko?'내 열차는 보통 제시간에 도착할까요?':'Is your train usually on time?'}</h2><p class="sub">${ko?'열차 번호나 역 이름으로 찾아보세요.':'Look up a train by its number or a station by its name.'}</p></div><div><form class="find-form" id="find" role="search" action="${ko?'ko/':''}trains/"><label class="sr-only" for="find-q">${ko?'열차 번호 또는 역 이름':'Train number or station name'}</label><input type="search" id="find-q" name="number" autocomplete="off" spellcheck="false" placeholder="${ko?'열차 번호 또는 역 이름 (예: 237, 대전)':'Train number or station, e.g. 237 or Daejeon'}"><button type="submit">${ko?'검색':'Search'}</button></form><p class="meta find-note" id="find-note" role="status"></p></div></div>`;
+// The front page's footer line that links the complete months with a page, newest first (js/start.js keeps it when it refreshes the footer).
+export const archiveLine=(keys,locale='en')=>{const ko=locale==='ko',name=k=>new Date(k+'-15T12:00:00Z').toLocaleDateString(ko?'ko-KR':'en-GB',{month:'long',year:'numeric',timeZone:'UTC'});
+ return keys.length?`<p class="archive">${ko?'기록 보관':'Archive'}: ${[...keys].sort().reverse().map(k=>`<a href="${ko?'ko/':''}${k}/">${name(k)}</a>`).join(' · ')}</p>`:'';};
 // What a search result shows for the front page: the newest day's share and the 30-day share, from the same two windows the page reads. Null without both.
 export function frontInfo(y,m,locale='en'){
  const ys=y?.summary?.all,ms=m?.summary?.all;if(!ys?.stops||!ms?.stops)return null;
  const ko=locale==='ko',window=localeUtils(locale).windowPhrase(m.from,m.to);
- const day=new Date(y.to+'T12:00:00+09:00').toLocaleDateString(ko?'ko-KR':'en-GB',ko?{month:'long',day:'numeric',weekday:'short',timeZone:'Asia/Seoul'}:{weekday:'short',day:'numeric',month:'short',timeZone:'Asia/Seoul'}).replace(' (','(');
- if(ko)return {title:'코레일 KTX 열차 도착 지연 통계 · Korean Train Stats',description:`${day} 코레일 열차 도착 기록의 ${pct(ys.share_punctual)}가 5분 이내에 도착했습니다(${window} ${pct(ms.share_punctual)}). KTX·ITX·무궁화호 열차, 역, 구간별로 확인하세요.`};
+ const day=new Date(y.to+'T12:00:00+09:00').toLocaleDateString(ko?'ko-KR':'en-GB',ko?{month:'long',day:'numeric',weekday:'short',timeZone:'Asia/Seoul'}:{weekday:'short',day:'numeric',month:'short',timeZone:'Asia/Seoul'}).replace(' (','(').replace('Sept','Sep');
+ if(ko)return {title:'코레일 KTX 열차 연착·지연 통계 · Korean Train Stats',description:`${day} 코레일 열차 도착 기록의 ${pct(ys.share_punctual)}가 5분 이내에 도착했습니다(${window} ${pct(ms.share_punctual)}). KTX·ITX·무궁화호 연착·지연을 열차, 역, 구간별로 확인하세요.`};
  return {title:'Korean Train Stats: how punctual are KTX and Korail trains?',description:`On ${day}, ${pct(ys.share_punctual)} of train stops were within 5 min of schedule (${pct(ms.share_punctual)} over ${window}). See delays by train, station or route.`};
 }
 // The page's main content, and one item per bar of the past 30 days for start.js to make interactive.

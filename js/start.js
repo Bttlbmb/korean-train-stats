@@ -37,7 +37,7 @@ async function render(){
   const [meta,{days},y,m]=await Promise.all([getJSON('meta.json'),getJSON('days.json'),getJSON('windows/yesterday.json'),getJSON('windows/month.json')]);
   const front=renderFront(meta,days,y,m,locale);
   main.innerHTML=front.html;barItems=front.barItems;
-  document.querySelector('#footer').innerHTML=localized.footer(meta);
+  {const footer=document.querySelector('#footer'),archive=footer.querySelector('.archive');footer.innerHTML=localized.footer(meta);if(archive)footer.prepend(archive);}
   if(y.trains?.length)bindTrainDots(y.trains,{height:130,locale});
   bindBars();
   refreshed=true;

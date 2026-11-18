@@ -49,7 +49,7 @@ export function pageInfo(station,rows,month,locale='en'){
   const name=stationName(station.name);
   return {title:`${name}역 열차 도착 지연 · Korean Train Stats`,description:`${name}역 정차 열차 ${num(trainCount(rows))}편: ${window} 도착 기록 ${num(arrivals)}건 중 ${pct0(all)}가 5분 이내에 도착했습니다.${byType}`,crumbs:[{name:'전체 역',to:'stations/'},{name:`${name}역`}]};
  }
- return {title:delaysTitle(`${station.name} station`),description:fitting(`${station.name} station: ${pct0(all)} of train stops were within 5 min of schedule over ${window} (${num(trainCount(rows))} trains).${byType}`,`${station.name} station: ${pct0(all)} of train stops were within 5 min of schedule over ${window} (${num(trainCount(rows))} trains).`),crumbs:[{name:'All stations',to:'stations/'},{name:station.name}]};
+ return {title:delaysTitle(`${station.name} station`),description:fitting(140,`${station.name} station: ${pct0(all)} of train stops were within 5 min of schedule over ${window} (${num(trainCount(rows))} trains).${byType}`,`${station.name} station: ${pct0(all)} of train stops were within 5 min of schedule over ${window} (${num(trainCount(rows))} trains).`),crumbs:[{name:'All stations',to:'stations/'},{name:station.name}]};
 }
 const href=(id,locale)=>`${locale==='ko'?'ko/':''}train/${encodeURIComponent(id)}/`,trainName=(r,locale)=>`${esc(locale==='ko'?localizeTrain(r).type:r.type)} ${esc(r.number)}`;
 const place=(name,locale)=>esc(locale==='ko'?stationName(name):name);

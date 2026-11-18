@@ -23,10 +23,11 @@ export const range = (a,b,year=true) => a===b ? date(a,year) : `${date(a)} – $
 // The window a page's figures cover, as "Last 30 days from 17 Oct to 15 Nov 2026", so a reader sees a deliberate 30-day window rather than all the data there is. A shorter window (collection is new) says its day count instead. The dates stay on one line.
 export const dayCount = (a,b) => Math.round((Date.parse(b)-Date.parse(a))/864e5)+1;
 // "over the last 30 days" in a search result; a window shorter than 30 days (collection is new) names its length instead.
-// A title with both words when it fits a search result's width (about 63 characters), otherwise "delays" alone.
-export const delaysTitle = (subject,suffix=' · Korean Train Stats') => `${subject} delays and punctuality${suffix}`.length<=63 ? `${subject} delays and punctuality${suffix}` : `${subject} delays${suffix}`;
-// The first of several wordings that fits a search result's description (about 140 characters), else the shortest.
-export const fitting = (...options) => options.find(o=>o.length<=140) || options.at(-1);
+// The first of several wordings that fits `limit` characters (what a search result shows of a title or description), else the last and shortest.
+export const fitting = (limit,...options) => options.find(o=>o.length<=limit) || options.at(-1);
+// A page title, widest wording first: both words and the site name, both words alone, "delays" and the name, "delays" alone. A long title loses the name before it loses a word.
+export const TITLE_MAX = 60, BRAND = ' · Korean Train Stats';
+export const delaysTitle = (subject,both=true) => fitting(TITLE_MAX,...(both?[`${subject} delays and punctuality${BRAND}`,`${subject} delays and punctuality`]:[]),`${subject} delays${BRAND}`,`${subject} delays`);
 export const windowPhrase = (a,b) => dayCount(a,b)===30 ? 'the last 30 days' : `the ${dayCount(a,b)} days collected so far`;
 export const span = (a,b) => { const n=dayCount(a,b); return `${n===30?'Last 30 days':`${n} ${n===1?'day':'days'}`} <span class="nb">${a===b?`on ${range(a,b)}`:`from ${date(a)} to ${date(b,true)}`}</span>`; };
 // The parts of a header's meta line: one line each on phones, a dot between them on wider screens.
