@@ -136,7 +136,7 @@ if(stationsInfo(stationRowsAll,month)){
 // The all-journeys page lists the journeys that at least 40 trains make; journeys/data.json lets its search answer any pair of stations.
 // Each listed journey also gets a page at journey/<from>-to-<to>/, built here from the delay bands in the detailed data, so visitors download nothing extra.
 if(journeysInfo(journeyRows,month)){
- for(const locale of ['en','ko'])write(`${locale==='ko'?'ko/':''}journeys/index.html`,page('journeys/',journeysInfo(journeyRows,month,locale),renderJourneys(journeyRows,month,locale,journeyCount(journeyStops)),locale));
+ for(const locale of ['en','ko'])write(`${locale==='ko'?'ko/':''}journeys/index.html`,page('journeys/',journeysInfo(journeyRows,month,locale,journeyCount(journeyStops)),renderJourneys(journeyRows,month,locale,journeyCount(journeyStops)),locale));
  write('journeys/data.json',JSON.stringify(compactJourneyData(journeyStops)));
  addresses.push('journeys/');
  const stationAt=new Map(journeyStops.stations.map((s,i)=>[s[2],i])),journeyAddresses=new Set();

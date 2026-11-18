@@ -101,11 +101,11 @@ export const journeyList=data=>[...collect(data).values()].filter(p=>p.ids.size>
 export const journeysAt=(data,from,to)=>[...collect(data,from,to).values()].map(p=>toRow(p,data)).sort(byTrains);
 export const journeyCount=data=>collect(data).size;
 // What a search result shows for this page.
-export function pageInfo(rows,month,locale='en'){
+export function pageInfo(rows,month,locale='en',all=rows.length){
  if(!rows?.length||!month?.from)return null;
  const window=localeUtils(locale).windowPhrase(month.from,month.to);
- if(locale==='ko')return {title:'전체 구간의 열차 도착 지연과 5분 이내 도착 비율 · Korean Train Stats',description:`서울에서 부산까지 등 구간 ${num(rows.length)}개의 ${window} 도착 기록을 비교합니다. 구간별 열차 수와 5분 이내 도착 비율을 확인하세요.`,crumbs:[{name:'전체 구간'}]};
- return {title:'All Korail journeys and their punctuality · Korean Train Stats',description:`How punctual is your route? Compare delays on ${num(rows.length)} journeys, from Seoul to Busan and more, by arrivals within 5 min over ${window}.`,crumbs:[{name:'All journeys'}]};
+ if(locale==='ko')return {title:'전체 구간의 열차 도착 지연과 5분 이내 도착 비율 · Korean Train Stats',description:`서울에서 부산까지 등 구간 ${num(all)}개의 ${window} 도착 기록을 비교합니다. 구간별 열차 수와 5분 이내 도착 비율을 확인하세요.`,crumbs:[{name:'전체 구간'}]};
+ return {title:'All Korail journeys and their punctuality · Korean Train Stats',description:`How punctual is your route? Compare delays on ${num(all)} journeys, from Seoul to Busan and more, by arrivals within 5 min over ${window}.`,crumbs:[{name:'All journeys'}]};
 }
 const stationNames=(r,locale)=>locale==='ko'?[r.fromKo,r.toKo]:[r.from,r.to];
 // A journey with MIN_TRAINS trains and a reported arrival has its own page at journey/<from ID>-to-<to ID>/; the address is public, so it uses the stable station IDs.
@@ -127,8 +127,7 @@ export const journeysOfStation=(station,rows)=>rows.filter(r=>r.fromId===station
 export function journeysCard(station,rows,locale='en'){
  const mine=journeysOfStation(station,rows);if(!mine.length)return '';
  const ko=locale==='ko',name=ko?stationName(station.name):station.name,shown=mine.slice(0,SHOWN_AT_STATION);
- const note=mine.length>shown.length?`<p class="rank-note">${ko?`${name}역에서 출발하거나 도착하는 구간 ${num(mine.length)}개 중 열차가 많은 순서입니다.`:`The busiest of ${num(mine.length)} journeys that start or end here.`}</p>`:'';
- return card(ko?`${name}역의 열차가 많은 구간`:`Busiest journeys at ${name}`,'',`<div class="rank-rows">${shown.map(r=>rank(r,locale)).join('')}</div>${note}`);
+ return card(ko?`${name}역의 열차가 많은 구간`:`Busiest journeys at ${name}`,'',`<div class="rank-rows">${shown.map(r=>rank(r,locale)).join('')}</div>`);
 }
 export function tableRow(r,locale){
  const [a,b]=stationNames(r,locale),took=duration(r.mins,locale==='ko'),count=trainsText(r.trains,locale);
@@ -150,7 +149,11 @@ export function resultHTML(stats,from,to,locale='en'){
  const took=stats.typical==null?'':` · <span class="nb">${t('typical scheduled time','예정 소요 시간')} ${esc(duration(stats.typical,ko))}</span>`;
  const page=n>=MIN_TRAINS&&stats.reported>0&&from[2]&&to[2]?`<a class="nav-btn" href="${ko?'ko/':''}${journeyPath(from[2],to[2])}" aria-label="${t('Journey page','구간 페이지')}"><span class="lg" aria-hidden="true">${t('Journey page','구간 페이지')}</span><span class="sm" aria-hidden="true">${t('Page','페이지')}</span>${ARROW}</a>`:'';
  const more=n>ROW_CAP?`<button type="button" class="trains-more">${t(`Show all ${num(n)} trains`,`전체 ${num(n)}편 보기`)}</button>`:'';
- return `<div class="jr-top"><p class="jr-fig">${ko?`${b} 도착 기록 중 5분 이내 <b>${share==null?'—':pct0(share)}</b>`:`<b>${share==null?'—':pct0(share)}</b> within 5 min at ${b}`} · ${trainsText(n,locale)}${took}</p>${page}</div>`
+ // Without a share the figure says why, in place: too few trains, or no reported arrival.
+ const lead=share!=null?`${ko?`${b} 도착 기록 중 5분 이내 <b>${pct0(share)}</b>`:`<b>${pct0(share)}</b> within 5 min at ${b}`} · ${trainsText(n,locale)}`
+  :n<SHOW_TRAINS?`<b>${trainsText(n,locale)}</b> · ${t(`too few for a share (${SHOW_TRAINS} needed)`,`비율 표시에는 열차 ${SHOW_TRAINS}편 이상이 필요합니다`)}`
+  :`${ko?`${b} 도착 기록 중 5분 이내 <b>—</b>`:`<b>—</b> within 5 min at ${b}`} · ${trainsText(n,locale)} · ${t('no arrival reported','도착 기록 없음')}`;
+ return `<div class="jr-top"><p class="jr-fig">${lead}${took}</p>${page}</div>`
   +trainNumberSearch(locale,'journeys-number')+`<p class="meta jr-count" id="journeys-trains-count" aria-live="polite"></p><div class="rank-rows">${rows}</div>${more}<p class="trains-empty" id="journeys-trains-empty" hidden>${t('No trains match this number.','이 번호와 일치하는 열차가 없습니다.')}</p>`;
 }
 const SORTS=[['num:descending',['Most trains','열차 많은 순']],['route:ascending',['Name','이름 순']],['share:descending',['Within 5 min, highest','5분 이내 도착 비율 높은 순']],['share:ascending',['Within 5 min, lowest','5분 이내 도착 비율 낮은 순']],['time:ascending',['Scheduled time, shortest','예정 소요 시간 짧은 순']]];
