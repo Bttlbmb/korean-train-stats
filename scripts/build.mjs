@@ -9,7 +9,7 @@ import {renderFront,frontInfo,archiveLine} from '../js/front.js';
 import {trainRow,renderTrains,pageInfo as trainsInfo} from '../js/trains.js';
 import {stationRows,renderStation,pageInfo as stationInfo} from '../js/station.js';
 import {stationList,renderStations,pageInfo as stationsInfo} from '../js/stations.js';
-import {journeyData,journeyCount,compactJourneyData,journeyList,journeyPath,pairStats,renderJourneys,renderJourney,journeyPageInfo,journeysCard,journeysFrom,pageInfo as journeysInfo} from '../js/journeys.js';
+import {journeyData,journeyCount,compactJourneyData,journeyList,journeysAt,journeyPath,pairStats,renderJourneys,renderJourney,journeyPageInfo,journeysCard,journeysFrom,pageInfo as journeysInfo} from '../js/journeys.js';
 import {monthFigures,renderMonth,pageInfo as monthInfo} from '../js/month.js';
 import {esc} from '../js/utils.js';
 import {stationAddresses,addressed} from '../js/addresses.js';
@@ -113,14 +113,14 @@ if(trainsInfo(rows,month)){
  addresses.push('trains/');
 }
 // The journeys, computed before the station pages because each station page ends with its busiest ones.
-const journeyStops=journeyData([...trainData.values()],stations.stations,true),journeyRows=journeyList(journeyStops);
+const journeyStops=journeyData([...trainData.values()],stations.stations,true),journeyRows=journeyList(journeyStops),allJourneys=journeysAt(journeyStops,null,null);
 // A station page for each station where a train reported an arrival in the past month.
 let stationPages=0;
 for(const station of stations.stations){
  const calls=callsAt.get(station.id);
  if(!stationInfo(station,calls,month))continue;
  const address=`station/${station.id}/`;
- for(const locale of ['en','ko'])write(`${locale==='ko'?'ko/':''}${address}index.html`,page(address,stationInfo(station,calls,month,locale),renderStation(station,calls,month,locale,journeysFrom(station,journeyRows,locale))+journeysCard(station,journeyRows,locale),locale));
+ for(const locale of ['en','ko'])write(`${locale==='ko'?'ko/':''}${address}index.html`,page(address,stationInfo(station,calls,month,locale),renderStation(station,calls,month,locale,journeysFrom(station,journeyRows,locale))+journeysCard(station,allJourneys,locale),locale));
  if(station.legacyId!==station.id)moved(`station/${station.legacyId}/`,address);
  stationPages++;addresses.push(address);
 }

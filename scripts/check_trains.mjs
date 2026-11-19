@@ -212,19 +212,22 @@ let journeyCount=0,journeyPages=0;
   const panel=resultHTML(pairStats(stops,0,1),stops.stations[0],stops.stations[1],locale).replace(/<[^>]*>/g,' ').match(/undefined|NaN|\bnull\b/);if(panel)fail(`${locale} panel contains "${panel[0]}"`);
  }
 
- // The card at the end of a station page: every journey that starts or ends there, busiest first, each linking to its journey page; none for a station in no journey.
- for(const station of stations.stations){
-  const mine=journeysOfStation(station,list);
-  for(const locale of ['en','ko']){
-   const html=journeysCard(station,list,locale),all=[...html.matchAll(/<a class="rank-row( over)?" href="([^"]*)"/g)],rows=all.map(m=>m[2]);
-   if(!mine.length){if(html)fail(`${station.id} (${locale}): a card for a station in no journey`);continue;}
-   const want=mine.map(r=>(locale==='ko'?'ko/':'')+journeyPath(r.fromId,r.toId));
-   if(JSON.stringify(rows)!==JSON.stringify(want))fail(`${station.id} (${locale}): the card links ${rows.join(', ')}, not ${want.join(', ')}`);
-   if(rows.some((_,i)=>i&&mine[i].trains>mine[i-1].trains))fail(`${station.id}: the card is not busiest first`);
-   // The rows after the first SHOWN_AT_STATION are hidden until Show all, and the button comes with four or more journeys, for all of them.
-   if(all.some((m,i)=>!!m[1]!==(i>=SHOWN_AT_STATION)))fail(`${station.id} (${locale}): the hidden rows are not those after the first ${SHOWN_AT_STATION}`);
-   if(html.includes('rank-more')!==mine.length>3||(html.includes('rank-more')&&!html.includes(`${locale==='ko'?'전체 ':'Show all '}${mine.length.toLocaleString('en')}`)))fail(`${station.id} (${locale}): the Show all button is wrong for ${mine.length} journeys`);
-   const bad=html.replace(/<[^>]*>/g,' ').match(/undefined|NaN|\bnull\b/);if(bad)fail(`${station.id} (${locale}): the card contains "${bad[0]}"`);
+ // The card at the end of a station page: the SHOWN_AT_STATION busiest journeys that start or end there, however few trains, busiest first; each links to its journey page, or to the search for the pair when it has none.
+ // None for a station in no journey, and two links to the full lists under the rows.
+ {
+  const everyJourney=journeysAt(stops,null,null);
+  for(const station of stations.stations){
+   const mine=journeysOfStation(station,everyJourney);
+   for(const locale of ['en','ko']){
+    const html=journeysCard(station,everyJourney,locale),rows=[...html.matchAll(/<a class="rank-row" href="([^"]*)"/g)].map(m=>m[1]);
+    if(!mine.length){if(html)fail(`${station.id} (${locale}): a card for a station in no journey`);continue;}
+    const prefix=locale==='ko'?'ko/':'',want=mine.slice(0,SHOWN_AT_STATION).map(r=>prefix+(r.trains>=MIN_TRAINS&&r.arrivals>0&&r.fromId&&r.toId?journeyPath(r.fromId,r.toId):`journeys/?from=${encodeURIComponent(r.from)}&to=${encodeURIComponent(r.to)}`));
+    if(JSON.stringify(rows)!==JSON.stringify(want))fail(`${station.id} (${locale}): the card links ${rows.join(', ')}, not ${want.join(', ')}`);
+    if(mine.slice(0,SHOWN_AT_STATION).some((r,i)=>i&&r.trains>mine[i-1].trains))fail(`${station.id}: the card is not busiest first`);
+    const q=encodeURIComponent(station.name);
+    if(!html.includes(`href="${prefix}journeys/?from=${q}"`)||!html.includes(`href="${prefix}journeys/?to=${q}"`))fail(`${station.id} (${locale}): the card lacks its two links to all journeys`);
+    const bad=html.replace(/<[^>]*>/g,' ').match(/undefined|NaN|\bnull\b/);if(bad)fail(`${station.id} (${locale}): the card contains "${bad[0]}"`);
+   }
   }
  }
  // A page for each listed journey, built from the detailed data: its headline within 5, 10 and 15 minutes must match the direct recount, its table must have a row per train, its hidden hour table must add up to

@@ -118,18 +118,18 @@ const trainsText=(n,locale)=>locale==='ko'?`열차 ${num(n)}편`:`${num(n)} ${n=
 // A journey time of 60 minutes or more reads as hours and minutes; a delay does the same (minutes in js/utils.js).
 const duration=(m,ko)=>{const h=Math.floor(m/60),r=m%60;return m<60?(ko?`${m}분`:`${m} min`):ko?`${h}시간${r?` ${r}분`:''}`:`${h} h${r?` ${r} min`:''}`;};
 const clock=m=>`${String(Math.floor(m%1440/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;
-const rank=(r,locale,over=false)=>{const [a,b]=stationNames(r,locale);return `<a class="rank-row${over?' over':''}" href="${href(r,locale)}"><span class="rank-name">${esc(a)} → ${esc(b)}</span><span class="rank-route">${trainsText(r.trains,locale)}</span><span class="rank-share">${bar(r.share)}</span></a>`;};
+const rank=(r,locale)=>{const [a,b]=stationNames(r,locale);return `<a class="rank-row" href="${href(r,locale)}"><span class="rank-name">${esc(a)} → ${esc(b)}</span><span class="rank-route">${trainsText(r.trains,locale)}</span><span class="rank-share">${bar(r.share)}</span></a>`;};
 // The journey pages that start at a station, by the name of the station they end at; a station page's Going to filter links to them.
 export const journeysFrom=(station,rows,locale='en')=>new Map(rows.filter(r=>r.fromId===station.id&&pageable(r)).map(r=>[r.to,href(r,locale)]));
-// The card at the end of a station page: the busiest journeys that start or end there, each a link to its journey page. Null when the station is in no journey. rows is the all-journeys list, busiest first.
-export const SHOWN_AT_STATION=6,PHONE_ROWS=3;
+// The card at the end of a station page: its busiest journeys by number of trains, however few, so every station that has a journey gets one. It makes no claim about how many there are; the two links under the rows lead
+// to the full lists. A journey without a page opens the all-journeys search for that pair. Null when the station is in no journey. rows is every journey (journeysAt), not only the catalogue.
+export const SHOWN_AT_STATION=6;
 export const journeysOfStation=(station,rows)=>rows.filter(r=>r.fromId===station.id||r.toId===station.id).sort((a,b)=>b.trains-a.trains||a.fromId.localeCompare(b.fromId)||a.toId.localeCompare(b.toId));
 export function journeysCard(station,rows,locale='en'){
  const mine=journeysOfStation(station,rows);if(!mine.length)return '';
- const ko=locale==='ko',name=ko?stationName(station.name):station.name;
- // Every journey is in the page; those after the first SHOWN_AT_STATION stay hidden until Show all (js/app.js), and phones show three before it, so the button comes with four or more.
- const more=mine.length>PHONE_ROWS?`<button type="button" class="trains-more rank-more${mine.length>SHOWN_AT_STATION?'':' phones-only'}" hidden>${ko?`전체 ${num(mine.length)}개 보기`:`Show all ${num(mine.length)} journeys`}</button>`:'';
- return card(ko?`${name}역의 열차가 많은 구간`:`Busiest journeys at ${name}`,'',`<div class="rank-rows">${mine.map((r,i)=>rank(r,locale,i>=SHOWN_AT_STATION)).join('')}</div>${more}`);
+ const ko=locale==='ko',name=ko?stationName(station.name):station.name,base=`${ko?'ko/':''}journeys/?`,q=encodeURIComponent(station.name);
+ const links=`<p class="rank-note rank-links"><a href="${base}from=${q}">${ko?`${name}역에서 출발하는 전체 구간`:`All journeys from ${name}`}</a> · <a href="${base}to=${q}">${ko?`${name}역으로 도착하는 전체 구간`:`All journeys to ${name}`}</a></p>`;
+ return card(ko?`${name}역의 열차가 많은 구간`:`Busiest journeys at ${name}`,'',`<div class="rank-rows">${mine.slice(0,SHOWN_AT_STATION).map(r=>rank(r,locale)).join('')}</div>${links}`);
 }
 export function tableRow(r,locale){
  const [a,b]=stationNames(r,locale),took=duration(r.mins,locale==='ko'),count=trainsText(r.trains,locale);
@@ -175,7 +175,7 @@ export function renderJourneys(rows,month,locale='en',all=rows.length){
   +`<div class="trains-status" id="journeys-status" hidden><p class="meta" id="journeys-count" aria-live="polite" data-text="${t('{n} of {total} journeys','전체 {total}개 중 {n}개')}" data-some="${t('{n} journeys','구간 {n}개')}">${ko?`전체 ${total}개 중 ${num(rows.length)}개`:`${num(rows.length)} of ${total} journeys`}</p><button type="button" id="journeys-reset" hidden>${t('Reset','초기화')}</button></div>`
   +`<div class="trains-key">${ko?localeUtils('ko').shareLegend('',null):shareLegend('',null)}<span class="meta">${t(`A dash means fewer than ${SHOW_TRAINS} trains call at both stations, or fewer than ${MIN_DAYS} recorded days for a train`,`두 역에 모두 정차하는 열차가 ${SHOW_TRAINS}편 미만이거나 열차의 도착 기록이 ${MIN_DAYS}일 미만이면 ‘—’로 표시합니다.`)}</span></div>`
   +`<div class="jres" id="journeys-result" hidden></div>`;
- const table=`<table class="trains-table" role="table" id="journeys-table"><thead><tr>${th('route',t('Journey','구간'))}${th('',t('Served by','정차 열차 종류'))}${th('time',t('Scheduled time','예정 소요 시간'))}${th('num',t('Trains','열차'),'','descending')}${th('share',t('Within 5 min','5분 이내 도착 비율'),'s')}</tr></thead><tbody id="journeys-rows" data-cap="${ROW_CAP}" data-more="${t('Show all {n} journeys','전체 {n}개 보기')}">${rows.map(r=>tableRow(r,locale)).join('')}</tbody></table>`
+ const table=`<table class="trains-table" role="table" id="journeys-table"><thead><tr>${th('route',t('Journey','구간'))}${th('',t('Served by','정차 열차 종류'))}${th('time',t('Scheduled time','예정 소요 시간'))}${th('num',t('Trains','열차'),'','descending')}${th('share',t('Within 5 min','5분 이내 도착 비율'),'s')}</tr></thead><tbody id="journeys-rows" data-cap="${ROW_CAP}" data-more="${t('Show {n} more journeys','구간 {n}개 더 보기')}">${rows.map(r=>tableRow(r,locale)).join('')}</tbody></table>`
   +`<p class="trains-empty" id="journeys-empty" hidden>${t('No journeys match these filters.','선택한 조건에 맞는 구간이 없습니다. 조건을 바꾸거나 초기화해 주세요.')}</p>`
   +`<p class="rank-note" id="journeys-note">${t('Choose a station to list all of its journeys, or two stations to see their trains.','역을 하나 선택하면 그 역의 모든 구간을, 두 역을 선택하면 두 역 사이의 열차를 확인할 수 있습니다.')}</p>`;
  return head+lists+card(t('Find a journey','구간 찾기'),'',controls+table,'find');

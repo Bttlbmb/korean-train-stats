@@ -104,7 +104,7 @@ function start(data){
  function limit(){
   let seen=0;for(const row of rows)row.classList.toggle('over',!all&&!row.hidden&&++seen>cap);
   const n=rows.filter(r=>!r.hidden).length;// A chosen pair is answered by the panel, so the table's own Show all button stays away with the table.
-  more.hidden=all||n<=cap||!!(value(from)&&value(to));more.textContent=body.dataset.more.replace('{n}',format(n));
+  more.hidden=all||n<=cap||!!(value(from)&&value(to));more.textContent=body.dataset.more.replace('{n}',format(n-cap));
  }
  // Offer only the stations that still lead to a journey, given the other station.
  function fill(select,list,current){
