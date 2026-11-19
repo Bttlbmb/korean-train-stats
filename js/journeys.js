@@ -115,19 +115,21 @@ export const pageable=r=>r.trains>=MIN_TRAINS&&r.arrivals>0&&!!r.fromId&&!!r.toI
 const href=(r,locale)=>`${locale==='ko'?'ko/':''}${pageable(r)?journeyPath(r.fromId,r.toId):`journeys/?from=${encodeURIComponent(r.from)}&to=${encodeURIComponent(r.to)}`}`;
 const types=(r,locale)=>r.types.map(g=>locale==='ko'?localizeTrain({type:g}).type:g).join(', ');
 const trainsText=(n,locale)=>locale==='ko'?`열차 ${num(n)}편`:`${num(n)} ${n===1?'train':'trains'}`;
-// A journey time of 60 minutes or more reads as hours and minutes; a delay switches only at 100 minutes (minutes in js/utils.js).
+// A journey time of 60 minutes or more reads as hours and minutes; a delay does the same (minutes in js/utils.js).
 const duration=(m,ko)=>{const h=Math.floor(m/60),r=m%60;return m<60?(ko?`${m}분`:`${m} min`):ko?`${h}시간${r?` ${r}분`:''}`:`${h} h${r?` ${r} min`:''}`;};
 const clock=m=>`${String(Math.floor(m%1440/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;
-const rank=(r,locale)=>{const [a,b]=stationNames(r,locale);return `<a class="rank-row" href="${href(r,locale)}"><span class="rank-name">${esc(a)} → ${esc(b)}</span><span class="rank-route">${trainsText(r.trains,locale)}</span><span class="rank-share">${bar(r.share)}</span></a>`;};
+const rank=(r,locale,over=false)=>{const [a,b]=stationNames(r,locale);return `<a class="rank-row${over?' over':''}" href="${href(r,locale)}"><span class="rank-name">${esc(a)} → ${esc(b)}</span><span class="rank-route">${trainsText(r.trains,locale)}</span><span class="rank-share">${bar(r.share)}</span></a>`;};
 // The journey pages that start at a station, by the name of the station they end at; a station page's Going to filter links to them.
 export const journeysFrom=(station,rows,locale='en')=>new Map(rows.filter(r=>r.fromId===station.id&&pageable(r)).map(r=>[r.to,href(r,locale)]));
 // The card at the end of a station page: the busiest journeys that start or end there, each a link to its journey page. Null when the station is in no journey. rows is the all-journeys list, busiest first.
-export const SHOWN_AT_STATION=6;
+export const SHOWN_AT_STATION=6,PHONE_ROWS=3;
 export const journeysOfStation=(station,rows)=>rows.filter(r=>r.fromId===station.id||r.toId===station.id).sort((a,b)=>b.trains-a.trains||a.fromId.localeCompare(b.fromId)||a.toId.localeCompare(b.toId));
 export function journeysCard(station,rows,locale='en'){
  const mine=journeysOfStation(station,rows);if(!mine.length)return '';
- const ko=locale==='ko',name=ko?stationName(station.name):station.name,shown=mine.slice(0,SHOWN_AT_STATION);
- return card(ko?`${name}역의 열차가 많은 구간`:`Busiest journeys at ${name}`,'',`<div class="rank-rows">${shown.map(r=>rank(r,locale)).join('')}</div>`);
+ const ko=locale==='ko',name=ko?stationName(station.name):station.name;
+ // Every journey is in the page; those after the first SHOWN_AT_STATION stay hidden until Show all (js/app.js), and phones show three before it, so the button comes with four or more.
+ const more=mine.length>PHONE_ROWS?`<button type="button" class="trains-more rank-more${mine.length>SHOWN_AT_STATION?'':' phones-only'}" hidden>${ko?`전체 ${num(mine.length)}개 보기`:`Show all ${num(mine.length)} journeys`}</button>`:'';
+ return card(ko?`${name}역의 열차가 많은 구간`:`Busiest journeys at ${name}`,'',`<div class="rank-rows">${mine.map((r,i)=>rank(r,locale,i>=SHOWN_AT_STATION)).join('')}</div>${more}`);
 }
 export function tableRow(r,locale){
  const [a,b]=stationNames(r,locale),took=duration(r.mins,locale==='ko'),count=trainsText(r.trains,locale);

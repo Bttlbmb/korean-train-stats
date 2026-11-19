@@ -212,15 +212,18 @@ let journeyCount=0,journeyPages=0;
   const panel=resultHTML(pairStats(stops,0,1),stops.stations[0],stops.stations[1],locale).replace(/<[^>]*>/g,' ').match(/undefined|NaN|\bnull\b/);if(panel)fail(`${locale} panel contains "${panel[0]}"`);
  }
 
- // The card at the end of a station page: the busiest journeys that start or end there, as many as SHOWN_AT_STATION, busiest first, each linking to its journey page; none for a station in no journey.
+ // The card at the end of a station page: every journey that starts or ends there, busiest first, each linking to its journey page; none for a station in no journey.
  for(const station of stations.stations){
   const mine=journeysOfStation(station,list);
   for(const locale of ['en','ko']){
-   const html=journeysCard(station,list,locale),rows=[...html.matchAll(/<a class="rank-row" href="([^"]*)"/g)].map(m=>m[1]);
+   const html=journeysCard(station,list,locale),all=[...html.matchAll(/<a class="rank-row( over)?" href="([^"]*)"/g)],rows=all.map(m=>m[2]);
    if(!mine.length){if(html)fail(`${station.id} (${locale}): a card for a station in no journey`);continue;}
-   const want=mine.slice(0,SHOWN_AT_STATION).map(r=>(locale==='ko'?'ko/':'')+journeyPath(r.fromId,r.toId));
+   const want=mine.map(r=>(locale==='ko'?'ko/':'')+journeyPath(r.fromId,r.toId));
    if(JSON.stringify(rows)!==JSON.stringify(want))fail(`${station.id} (${locale}): the card links ${rows.join(', ')}, not ${want.join(', ')}`);
    if(rows.some((_,i)=>i&&mine[i].trains>mine[i-1].trains))fail(`${station.id}: the card is not busiest first`);
+   // The rows after the first SHOWN_AT_STATION are hidden until Show all, and the button comes with four or more journeys, for all of them.
+   if(all.some((m,i)=>!!m[1]!==(i>=SHOWN_AT_STATION)))fail(`${station.id} (${locale}): the hidden rows are not those after the first ${SHOWN_AT_STATION}`);
+   if(html.includes('rank-more')!==mine.length>3||(html.includes('rank-more')&&!html.includes(`${locale==='ko'?'전체 ':'Show all '}${mine.length.toLocaleString('en')}`)))fail(`${station.id} (${locale}): the Show all button is wrong for ${mine.length} journeys`);
    const bad=html.replace(/<[^>]*>/g,' ').match(/undefined|NaN|\bnull\b/);if(bad)fail(`${station.id} (${locale}): the card contains "${bad[0]}"`);
   }
  }
