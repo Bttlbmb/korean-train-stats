@@ -147,7 +147,7 @@ if(journeysInfo(journeyRows,month)){
   const legacy=id=>stations.stations.find(s=>s.id===id)?.legacyId??id,old=journeyPath(legacy(row.fromId),legacy(row.toId));
   if(old!==address)moved(old,address);
   const from=stationAt.get(row.fromId),to=stationAt.get(row.toId),stats=pairStats(journeyStops,from,to);
-  for(const locale of ['en','ko'])write(`${locale==='ko'?'ko/':''}${address}index.html`,page(address,journeyPageInfo(row,month,locale),renderJourney({row,stats},month,locale),locale));
+  for(const locale of ['en','ko'])write(`${locale==='ko'?'ko/':''}${address}index.html`,page(address,journeyPageInfo(row,month,locale),renderJourney({row,stats},month,locale,name=>stationIds.get(name)),locale));
   addresses.push(address);
  }
 }

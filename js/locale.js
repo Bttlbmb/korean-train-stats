@@ -18,7 +18,7 @@ const range = (a,b,year=true) => a===b ? date(a,year) : `${date(a,year)}–${dat
 const dayCount = (a,b) => Math.round((Date.parse(b)-Date.parse(a))/864e5)+1;
 const span = (a,b) => { const n=dayCount(a,b),label=n===30?'최근 30일':`${n}일`,nb=x=>`<span class="nb">${x}</span>`; return a===b?`${label} (${nb(date(a,true))})`:`${label} (${nb(`${date(a,true)}부터`)} ${nb(`${date(b,true)}까지`)})`; };
 const windowPhrase = (a,b) => dayCount(a,b)===30 ? '최근 30일' : `수집 완료 ${dayCount(a,b)}일`;
-const minutes = n => n>=100 ? `${Math.floor(n/60)}시간${n%60?` ${n%60}분`:''}` : `${n}분`;
+const minutes = n => n<0 ? `-${minutes(-n)}` : n>=60 ? `${Math.floor(n/60)}시간${n%60?` ${n%60}분`:''}` : `${n}분`;
 const delay = n => n == null ? '—' : `${n>0?'+':''}${minutes(n)}`;
 const scale = [['ontime','5분 이내'],['d2','6–10분'],['d3','11–20분'],['d4','21–30분'],['d5','30분 초과']];
 const scaleLegend = (extra='') => `<div class="legend">${scale.map(([k,t])=>`<span><i class="swatch" style="background:var(--${k})"></i>${t}</span>`).join('')}${extra}</div>`;

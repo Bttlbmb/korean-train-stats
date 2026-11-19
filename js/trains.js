@@ -10,7 +10,8 @@ const RANK_DAYS=20;
 export function trainRow(train){
  const w=train?.windows?.month;if(!train||!w?.runs)return null;
  const stops=train.timetables.at(-1).stops,first=stops[0],last=stops.at(-1);
- return {id:train.id,number:train.number,type:train.type,origin:train.origin,destination:train.destination,dep:first.departure,arr:last.arrival,off:last.arrival_day_offset||0,
+ // calls: every station the train stops at, which the Calls at filter matches.
+ return {id:train.id,number:train.number,type:train.type,origin:train.origin,destination:train.destination,calls:[...new Set(stops.map(s=>s.station))],dep:first.departure,arr:last.arrival,off:last.arrival_day_offset||0,
   runs:w.runs,share:w.share_punctual??null,stops:stops.filter(s=>s.arrival!=null).length*w.runs};
 }
 const typeRank=type=>{const i=TYPE_ORDER.indexOf(type);return i<0?TYPE_ORDER.length:i;};
@@ -31,7 +32,7 @@ const rank=(r,locale)=>`<a class="rank-row" href="${href(r.id,locale)}"><span cl
 const arrival=r=>`${esc(r.arr)}${r.off?`<sup>+${r.off}</sup>`:''}`;
 function tableRow(r,locale){
  const ko=locale==='ko',s=shown(r),route=ko?`${stationName(r.origin)} → ${stationName(r.destination)}`:`${r.origin} → ${r.destination}`;
- return `<tr data-type="${esc(group(r.type))}" data-from="${esc(r.origin)}" data-to="${esc(r.destination)}" data-num="${r.number}" data-route="${esc(route)}" data-dep="${minutes(r.dep)}" data-arr="${minutes(r.arr)+r.off*1440}" data-share="${s==null?'':s}">`
+ return `<tr data-type="${esc(group(r.type))}" data-from="${esc(r.origin)}" data-to="${esc(r.destination)}" data-calls="${esc(r.calls.join('|'))}" data-num="${r.number}" data-route="${esc(route)}" data-dep="${minutes(r.dep)}" data-arr="${minutes(r.arr)+r.off*1440}" data-share="${s==null?'':s}">`
   +`<td class="t"><a href="${href(r.id,locale)}">${name(r,locale)}</a></td><td class="r">${esc(route)}</td><td class="dep">${esc(r.dep)}</td><td class="arr">${arrival(r)}</td>`
   +`<td class="s">${bar(s)}</td></tr>`;
 }
@@ -49,9 +50,11 @@ export function renderTrains(rows,month,locale='en'){
  const lists=`<div class="trains-lists">${card('Most punctual','',`<div class="rank-rows">${best.map(rank).join('')}</div><p class="rank-note">${num(perfect)} trains were within 5 min at every stop.</p>`)}`
   +`${card('Least punctual','',`<div class="rank-rows">${worst.map(rank).join('')}</div><p class="rank-note">Trains with at least ${RANK_DAYS} recorded days.</p>`)}</div>`;
  const boxes=[];for(const r of rows){const g=group(r.type),box=boxes.find(b=>b.g===g);if(box)box.n++;else boxes.push({g,n:1});}
- const stations=[...new Set(rows.flatMap(r=>[r.origin,r.destination]))].sort((a,b)=>a.localeCompare(b)),options=stations.map(s=>`<option>${esc(s)}</option>`).join('');
+ const stations=[...new Set(rows.flatMap(r=>[r.origin,r.destination]))].sort((a,b)=>a.localeCompare(b)),options=stations.map(s=>`<option>${esc(s)}</option>`).join(''),
+  callOptions=[...new Set(rows.flatMap(r=>r.calls))].sort((a,b)=>a.localeCompare(b)).map(s=>`<option>${esc(s)}</option>`).join('');
  const filters=`<form class="trains-filters" id="trains-filters" hidden><fieldset><legend>Train types</legend><div class="type-chips">${boxes.map(b=>`<label><input type="checkbox" name="type" value="${esc(b.g)}" checked>${esc(b.g)} <span>${num(b.n)}</span></label>`).join('')}</div></fieldset>`
   +trainNumberSearch(locale)+`<div class="trains-field"><label for="trains-from">Starts at</label><select id="trains-from"><option value="">Any station</option>${options}</select></div>`
+  +`<div class="trains-field calls-field"><label for="trains-calls">Calls at</label><select id="trains-calls"><option value="">Any station</option>${callOptions}</select></div>`
   +`<div class="trains-field"><label for="trains-to">Final destination</label><select id="trains-to"><option value="">Any destination</option>${options}</select></div>`
   +`<div class="trains-field sort-field"><label for="trains-sort">Sort by</label><select id="trains-sort">${SORTS.map(([v,t])=>`<option value="${v}">${t}</option>`).join('')}</select></div></form>`
   +`<div class="trains-status" id="trains-status" hidden><p class="meta" id="trains-count" aria-live="polite">${total} of ${total} trains</p><button type="button" id="trains-reset" hidden>Reset</button></div>`
@@ -75,14 +78,16 @@ function renderKoreanTrains(rows,month){
  const boxes=[];for(const r of rows){const g=group(r.type),box=boxes.find(b=>b.g===g);if(box)box.n++;else boxes.push({g,n:1});}
  const stations=[...new Set(rows.flatMap(r=>[r.origin,r.destination]))].sort((a,b)=>stationName(a).localeCompare(stationName(b),'ko'));
  const options=stations.map(s=>`<option value="${esc(s)}">${esc(stationName(s))}</option>`).join('');
+ const callOptions=[...new Set(rows.flatMap(r=>r.calls))].sort((a,b)=>stationName(a).localeCompare(stationName(b),'ko')).map(s=>`<option value="${esc(s)}">${esc(stationName(s))}</option>`).join('');
  const sorts=['열차 종류','열차 번호','출발 시각 빠른 순','도착 시각 빠른 순','5분 이내 도착 비율 높은 순','5분 이내 도착 비율 낮은 순','운행 구간'];
  const filters=`<form class="trains-filters" id="trains-filters" hidden><fieldset><legend>열차 종류</legend><div class="type-chips">${boxes.map(b=>`<label><input type="checkbox" name="type" value="${esc(b.g)}" checked>${esc(localizeTrain({type:b.g}).type)} <span>${num(b.n)}</span></label>`).join('')}</div></fieldset>`
   +trainNumberSearch('ko')+`<div class="trains-field"><label for="trains-from">출발역</label><select id="trains-from"><option value="">전체 역</option>${options}</select></div>`
+  +`<div class="trains-field calls-field"><label for="trains-calls">정차역</label><select id="trains-calls"><option value="">전체 역</option>${callOptions}</select></div>`
   +`<div class="trains-field"><label for="trains-to">종착역</label><select id="trains-to"><option value="">전체 종착역</option>${options}</select></div>`
   +`<div class="trains-field sort-field"><label for="trains-sort">정렬 기준</label><select id="trains-sort">${SORTS.map(([v],i)=>`<option value="${v}">${sorts[i]}</option>`).join('')}</select></div></form>`
   +`<div class="trains-status" id="trains-status" hidden><p class="meta" id="trains-count" aria-live="polite">전체 ${total}편 중 ${total}편</p><button type="button" id="trains-reset" hidden>초기화</button></div>`
   +`<div class="trains-key">${ko.shareLegend('',null)}<span class="meta">운행 기록이 ${MIN_DAYS}일 미만이거나 도착 비율을 계산할 자료가 없으면 ‘—’로 표시합니다.</span></div>`;
  const table=`<table class="trains-table" role="table"><thead><tr>${th('num','열차')}${th('route','운행 구간')}${th('dep','출발')}${th('arr','도착')}${th('share','5분 이내 도착 비율','s')}</tr></thead><tbody id="trains-rows" data-cap="${ROW_CAP}">${rows.map(r=>tableRow(r,'ko')).join('')}</tbody></table>`
   +`<p class="trains-empty" id="trains-empty" hidden>선택한 조건에 맞는 열차가 없습니다. 조건을 바꾸거나 초기화해 주세요.</p>`;
- return head+lists+card('열차 찾기','열차의 첫 출발역과 마지막 도착역 기준입니다.',filters+table,'find');
+ return head+lists+card('열차 찾기','출발역과 종착역은 열차의 첫 역과 마지막 역 기준이고, 정차역은 모든 정차를 포함합니다.',filters+table,'find');
 }

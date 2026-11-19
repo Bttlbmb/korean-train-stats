@@ -212,12 +212,14 @@ function journeyTrainRow(t,locale){
 }
 // The page for one journey: figures for the whole journey, the delay on arrival by hour of departure, and a table of every train. r is its row of the all-journeys list, stats is pairStats from build-time
 // data (with delay bands).
-export function renderJourney({row:r,stats},month,locale='en'){
+// stationId gives the address name of the station page for a station's English name, or null when it has none; the two names in the title lead there and look like plain text.
+export function renderJourney({row:r,stats},month,locale='en',stationId=()=>null){
  const ko=locale==='ko',{span:period,metaLine,backBtn,shareLegend:legendOf,scaleLegend}=localeUtils(locale),t=(en,kr)=>ko?kr:en,[a,b]=stationNames(r,locale),A=esc(a),B=esc(b),n=stats.trains.length;
  if(!n||!stats.reported||!month?.from)return empty(t('No reported arrivals for this journey in the past month.','이 기간에 이 구간의 도착 기록이 없습니다.'));
+ const place=(name,text)=>stationId(name)?`<a class="plain-link" href="${ko?'ko/':''}station/${encodeURIComponent(stationId(name))}/">${text}</a>`:text;
  const share=stats.within/stats.reported,within10=(stats.bands[0]+stats.bands[1])/stats.reported,within15=stats.within15/stats.reported;
  const stat=fig(pct0(share),t('within 5 min','5분 이내'))+fig(pct0(within10),t('within 10 min','10분 이내'))+fig(pct0(within15),t('within 15 min','15분 이내'))+fig(esc(duration(stats.typical,ko)),t('typical scheduled time','예정 소요 시간'));
- const head=`<div class="train-intro train-head"><div class="train-lead">${backBtn}<div><h1>${A} → ${B}</h1><p class="meta">${metaLine(ko?`두 역에 모두 정차하는 열차 ${num(n)}편`:`${num(n)} trains call at both stations`,period(month.from,month.to),t(`% = share of arrivals at ${B} within 5&nbsp;min`,`%는 ${B} 도착 기록 중 5분 이내에 도착한&nbsp;비율`))}</p><p class="meta train-stats">${stat}</p></div></div></div>`;
+ const head=`<div class="train-intro train-head"><div class="train-lead">${backBtn}<div><h1>${place(r.from,A)} → ${place(r.to,B)}</h1><p class="meta">${metaLine(ko?`두 역에 모두 정차하는 열차 ${num(n)}편`:`${num(n)} trains call at both stations`,period(month.from,month.to),t(`% = share of arrivals at ${B} within 5&nbsp;min`,`%는 ${B} 도착 기록 중 5분 이내에 도착한&nbsp;비율`))}</p><p class="meta train-stats">${stat}</p></div></div></div>`;
  // The chart: a stacked bar per departure hour in the delay scale, the within-5 share above it, the hour below (the tooltip and the hidden table give the trains). A bar needs HOUR_MIN_ARRIVALS arrivals.
  const hours=hourBuckets(stats),label=i=>BANDS[i][ko?1:0],hh=h=>String(h).padStart(2,'0');
  const cols=hours.map(o=>{

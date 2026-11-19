@@ -15,8 +15,8 @@ export const pct0 = n => n == null ? '—' : n >= 1 ? '100%' : `${Math.min(99,Ma
 export const backBtn = '<a class="back-btn" href="./" aria-label="Back to front page" data-tip="Back to front page"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M13 8H3m5-5L3 8l5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></a>';
 // A long train table shows this many trains until the reader asks for all of them (js/trains-page.js).
 export const ROW_CAP = 40;
-// A delay of 100 minutes or more reads as hours and minutes (179 is 2 h 59 min); a shorter one stays in minutes. The month page's delay_text in the backend's exporter/export_site_data.py writes the same.
-export const minutes = n => n>=100 ? `${Math.floor(n/60)} h${n%60?` ${n%60} min`:''}` : `${n} min`;
+// A delay of an hour or more reads as hours and minutes (99 is 1 h 39 min, 179 is 2 h 59 min); a shorter one stays in minutes, and an early arrival follows the same rule with a minus sign (-63 is -1 h 3 min). The month page's delay_text in the backend's exporter/export_site_data.py writes the same.
+export const minutes = n => n<0 ? `-${minutes(-n)}` : n>=60 ? `${Math.floor(n/60)} h${n%60?` ${n%60} min`:''}` : `${n} min`;
 export const delay = n => n == null ? '—' : `${n>0?'+':''}${minutes(n)}`;
 export const date = (s,year=false) => s ? new Date(s+'T12:00:00+09:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',...(year?{year:'numeric'}:{}) ,timeZone:'Asia/Seoul'}).replace('Sept','Sep') : '—';
 export const range = (a,b,year=true) => a===b ? date(a,year) : `${date(a)} – ${date(b,year)}`;
