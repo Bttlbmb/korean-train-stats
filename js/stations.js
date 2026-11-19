@@ -6,7 +6,7 @@ import {card,trainCount} from './station.js';
 const GROUPS=['KTX','ITX','Mugunghwa','Other'];
 const group=type=>type.startsWith('ITX')?'ITX':type;
 const MIN_ARRIVALS=10,RANK_ARRIVALS=200;
-// One row per station with a page: how many trains call there, the train types, and its reported arrivals and the share within 5 minutes. calls comes from stationRows in js/station.js.
+// One row per station with a page: how many trains stop there, the train types, and its reported arrivals and the share within 5 minutes. calls comes from stationRows in js/station.js.
 export function stationList(stations,calls){
  const rows=[];
  for(const station of stations){
@@ -47,7 +47,7 @@ export function renderStations(rows,month,locale='en'){
  const busiest=[...rows].sort((a,b)=>b.trains-a.trains||b.arrivals-a.arrivals||a.id.localeCompare(b.id)).slice(0,5);
  const least=[...ranked].sort((a,b)=>a.share-b.share||b.arrivals-a.arrivals||a.id.localeCompare(b.id)).slice(0,5);
  const trainsText=r=>ko?`열차 ${num(r.trains)}편`:`${num(r.trains)} ${r.trains===1?'train':'trains'}`;
- const lists=ranked.length<5?'':`<div class="trains-lists">${card(t('Busiest','정차 열차가 많은 역'),'',`<div class="rank-rows">${busiest.map(r=>rank(r,locale,trainsText(r))).join('')}</div><p class="rank-note">${t('Ranked by the number of trains that call there.','정차하는 열차 수가 많은 순서입니다.')}</p>`)}`
+ const lists=ranked.length<5?'':`<div class="trains-lists">${card(t('Busiest','정차 열차가 많은 역'),'',`<div class="rank-rows">${busiest.map(r=>rank(r,locale,trainsText(r))).join('')}</div><p class="rank-note">${t('Ranked by the number of trains that stop there.','정차하는 열차 수가 많은 순서입니다.')}</p>`)}`
   +`${card(t('Least punctual','5분 이내 도착 비율 하위 역'),'',`<div class="rank-rows">${least.map(r=>rank(r,locale,trainsText(r))).join('')}</div><p class="rank-note">${t(`Stations with at least ${RANK_ARRIVALS} reported stops.`,`도착 기록이 ${RANK_ARRIVALS}건 이상인 역을 비교합니다.`)}</p>`)}</div>`;
  const boxes=GROUPS.map(g=>({g,n:rows.filter(r=>r.types.includes(g)).length})).filter(x=>x.n).map(x=>`<label><input type="checkbox" name="type" value="${x.g}" checked>${esc(ko?localizeTrain({type:x.g}).type:x.g)} <span>${num(x.n)}</span></label>`).join('');
  const controls=`<form class="trains-filters" id="trains-filters" hidden><div class="trains-field search-field"><label for="stations-q">${t('Search by name','이름으로 찾기')}</label><input id="stations-q" type="search" placeholder="${t('Station name','역 이름')}" autocomplete="off" spellcheck="false"></div>`

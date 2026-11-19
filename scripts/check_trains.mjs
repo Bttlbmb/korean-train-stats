@@ -97,10 +97,10 @@ if(fs.existsSync(data+'days'))for(const file of fs.readdirSync(data+'days')){
  const links=[...html.matchAll(/<tr data-[^>]*data-share="([^"]*)"><td class="t"><a href="train\/([^"]+)\/"/g)].map(m=>[decodeURIComponent(m[2]),m[1]]);
  if(links.length!==trainRows.length||new Set(links.map(l=>l[0])).size!==links.length)fail(`${links.length} rows for ${trainRows.length} train pages, or a train twice`);
  const share=new Map(links);
- // The Calls at filter reads each row's stops: they must include the train's first and last station, and as many stations as the train has.
+ // The Stops at filter reads each row's stops: they must include the train's first and last station, and as many stations as the train has.
  const calledAt=new Map([...html.matchAll(/data-calls="([^"]*)"[^>]*>\s*<td class="t"><a href="train\/([^"]+)\/"/g)].map(m=>[decodeURIComponent(m[2]),m[1].split('|')]));
- if(calledAt.size!==trainRows.length)fail(`${calledAt.size} rows with Calls at stations for ${trainRows.length} trains`);
- for(const [file,row] of trainRows){const c=calledAt.get(row.id)||[];if(!c.includes(row.origin)||!c.includes(row.destination)||c.length!==row.calls.length)fail(`${row.id} has Calls at stations ${c.length}, its file gives ${row.calls.length}`);}
+ if(calledAt.size!==trainRows.length)fail(`${calledAt.size} rows with Stops at stations for ${trainRows.length} trains`);
+ for(const [file,row] of trainRows){const c=calledAt.get(row.id)||[];if(!c.includes(row.origin)||!c.includes(row.destination)||c.length!==row.calls.length)fail(`${row.id} has Stops at stations ${c.length}, its file gives ${row.calls.length}`);}
  for(const [file,row] of trainRows){const expected=row.runs>=10&&row.share!=null?String(row.share):'';if(share.get(row.id)!==expected)fail(`${row.id} shows share "${share.get(row.id)}" but its file gives "${expected}"`);}
  if(!info||info.title.length>80||info.description.length>200)fail('no title and description, or they are too long');
 }
