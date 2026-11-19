@@ -4,7 +4,7 @@ import {pinHTML} from './train.js';
 // A station page (station/<id>/): the station on the map and a table of every train.
 // It needs no browser, so scripts/build.mjs builds the whole page and trains-page.js only adds the controls.
 const group=type=>type.startsWith('ITX')?'ITX':type;
-const GROUPS=['KTX','ITX','Mugunghwa','Other'];
+const GROUPS=['KTX','ITX','Saemaeul','Mugunghwa','Other'];
 const minutes=t=>+t.slice(0,2)*60+ +t.slice(3);
 // A table this short or shorter has no controls.
 const FEW=10;

@@ -2,7 +2,7 @@ import {esc,num,pct0,span,metaLine,backBtn,shareLegend,bar,empty,ROW_CAP,MIN_DAY
 import {localeUtils,localizeTrain,stationName} from './locale.js';
 // The all-trains page (trains/): top lists, filters, and a table with a row for every train that ran in the past month.
 // It needs no browser, so scripts/build.mjs builds the whole page, links included, and trains-page.js only adds the controls.
-const TYPE_ORDER=['KTX','ITX-Saemaeul','ITX-Maum','ITX-Cheongchun','Mugunghwa','Other'];
+const TYPE_ORDER=['KTX','ITX-Saemaeul','ITX-Maum','ITX-Cheongchun','Saemaeul','Mugunghwa','Other'];
 const group=type=>type.startsWith('ITX')?'ITX':type;
 const minutes=t=>+t.slice(0,2)*60+ +t.slice(3);
 const RANK_DAYS=20;

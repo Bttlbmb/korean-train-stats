@@ -7,7 +7,7 @@ let stationNames = {};
 export const configureKoreanStations = names => { stationNames = names; };
 export const stationName = name => stationNames[name] || name;
 export function localizeTrain(train) {
- const names = {'ITX-Saemaeul':'ITX-새마을','ITX-Maum':'ITX-마음','ITX-Cheongchun':'ITX-청춘','Mugunghwa':'무궁화호','Other':'기타'};
+ const names = {'ITX-Saemaeul':'ITX-새마을','ITX-Maum':'ITX-마음','ITX-Cheongchun':'ITX-청춘','Saemaeul':'새마을호','Mugunghwa':'무궁화호','Other':'기타'};
  return {...train, type:names[train.type] || train.type,
   origin:stationName(train.origin), destination:stationName(train.destination)};
 }

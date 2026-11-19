@@ -3,7 +3,7 @@ import {localeUtils,localizeTrain} from './locale.js';
 import {card,trainCount} from './station.js';
 // The all-stations page (stations/): top lists, a name search and type boxes, and a table with a row for every station where a train reported an arrival in the past month.
 // It needs no browser, so scripts/build.mjs builds the whole page, links included, and trains-page.js only adds the controls.
-const GROUPS=['KTX','ITX','Mugunghwa','Other'];
+const GROUPS=['KTX','ITX','Saemaeul','Mugunghwa','Other'];
 const group=type=>type.startsWith('ITX')?'ITX':type;
 const MIN_ARRIVALS=10,RANK_ARRIVALS=200;
 // One row per station with a page: how many trains stop there, the train types, and its reported arrivals and the share within 5 minutes. calls comes from stationRows in js/station.js.

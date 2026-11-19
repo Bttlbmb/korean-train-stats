@@ -6,7 +6,7 @@ import {card} from './station.js';
 // scripts/build.mjs builds the whole page and writes journeys/data.json, which js/journeys-page.js loads to answer a search for any two stations.
 // Each journey with a page (MIN_TRAINS trains) also gets journey/<from>-to-<to>/, rendered by renderJourney below from the same train files; its figures are computed at build time, so visitors download no extra data.
 // Both pages share pairStats, so the panel on the all-journeys page and a journey page cannot disagree.
-const GROUPS=['KTX','ITX','Mugunghwa','Other'];
+const GROUPS=['KTX','ITX','Saemaeul','Mugunghwa','Other'];
 const group=type=>type.startsWith('ITX')?'ITX':type;
 const minutes=t=>+t.slice(0,2)*60+ +t.slice(3);
 // Match station ID + zero-based visit across timetable versions; inserting a stop can change ordinals.
