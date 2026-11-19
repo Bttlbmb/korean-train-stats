@@ -19,6 +19,7 @@ Railway labels follow the references below. Statistical labels describe this sit
 | No run record | 운행 기록 없음 | Does not establish that a train did not operate. |
 | Uncollected date, unavailable lookup, missing final value | 미수집 · 조회 불가 · 종착역 도착 자료 없음 | Preserve these distinct states. |
 | Timetable change | 시간표 변경 | A changed schedule, not proof of a delay. |
+| Time column on station and train pages | 시각 | One time per row, the arrival, or the departure for a train that starts here (출발). Not 도착, which would be wrong for those rows. Sort label 시각 빠른 순. |
 | Where a train started or ends | 이 역에서 출발 · 이 역이 종착역 | Station pages. 출발 is the departing event, so a count of trains that start at the station reads 그중 N편은 이 역에서 출발, not 출발 N편. |
 | First and last station filters, all-trains page | 출발역 · 종착역 | They match a train’s first and last station only; 도착역 would suggest any arrival stop. |
 | Station page filter “Going to” | 도착역 · 전체 역 | It matches any station the train calls at after this one, which is what 도착역 means. |
