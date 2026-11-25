@@ -2,15 +2,17 @@
 
 How punctual are South Korea’s trains? This static site shows reported arrival delays for Korail trains at <https://koreantrainstats.com/>.
 
-The front page shows the newest complete day and the past 30 days, with explicit dates when collection is behind. Each daily dot is a train; selecting it opens a page with one row per stop and one dot per recorded day. Station pages, such as `station/daejeon/`, show the station, its punctuality rankings, and the trains that call there.
+The front page shows the newest complete day and the newest 30 completed dates. Each daily dot represents a train and opens its page, which shows the reports by stop and day. Station pages, such as `station/daejeon/`, give the station’s figures, the trains that call there, and its busiest journeys.
 
 The header links to three directories:
 
-- **All trains:** train numbers, routes, and punctuality, with filters by number, type, first station, and last station.
+- **All trains:** train numbers, routes, and punctuality, with filters by number, type, and station.
 - **All stations:** station-name search, service types, train counts, and punctuality.
-- **All journeys:** a catalogue of journeys with at least 40 services, plus a search for direct journeys between two stations. Each of those journeys has its own page (`journey/seoul-to-busan/`) with its figures, the delay by departure hour, and a table of its trains. Clear segments of circular services are included; a selected journey’s departures can be filtered by train number.
+- **All journeys:** a [catalogue of busy journeys](BUILD_NOTES.md#display-thresholds), plus a search for direct journeys between two stations. Catalogue entries have their own pages (`journey/seoul-to-busan/`) with figures, a delay-by-departure-hour chart, and the list of trains. Clear segments of circular services are included; a selected journey’s departures can be filtered by train number.
 
-The build supplies English and Korean versions. Korean pages use `/ko/`, and the language switch keeps the current page and list filters.
+The Stats page, when the export supplies its data, shows delay patterns by service group, weekday, departure hour, and track stretch. The day and month archives preserve the completed collection dates.
+
+Korean pages use `/ko/`. The language switch keeps the current page and list filters.
 
 ## Data and credits
 

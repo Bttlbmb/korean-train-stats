@@ -1,18 +1,19 @@
-import {esc,num,pct0,span,metaLine,backBtn,shareLegend,bar,empty,ROW_CAP,MIN_DAYS,trainNumberSearch,tableHeading as th,stat} from './utils.js';
+import {esc,num,pct0,span,metaLine,backBtn,shareLegend,bar,empty,ROW_CAP,MIN_DAYS,trainNumberSearch,tableHeading as th,stat,card,scheduledMinute} from './utils.js';
 import {localeUtils,localizeTrain,stationName} from './locale.js';
 // The all-trains page (trains/): top lists, filters, and a table with a row for every train that ran in the past month.
 // It needs no browser, so scripts/build.mjs builds the whole page, links included, and trains-page.js only adds the controls.
 const TYPE_ORDER=['KTX','ITX-Saemaeul','ITX-Maum','ITX-Cheongchun','Saemaeul','Mugunghwa','Other'];
 const group=type=>type.startsWith('ITX')?'ITX':type;
-const minutes=t=>+t.slice(0,2)*60+ +t.slice(3);
 const RANK_DAYS=20;
 // One row per train with a page: its journey and its share of stops within 5 minutes over the past month. A train with no run in the past month gets null.
 export function trainRow(train){
  const w=train?.windows?.month;if(!train||!w?.runs)return null;
  const stops=train.timetables.at(-1).stops,first=stops[0],last=stops.at(-1);
  // calls: every station the train stops at, which the Stops at filter matches.
- return {id:train.id,number:train.number,type:train.type,origin:train.origin,destination:train.destination,calls:[...new Set(stops.map(s=>s.station))],dep:first.departure,arr:last.arrival,off:last.arrival_day_offset||0,
-  runs:w.runs,share:w.share_punctual??null,stops:stops.filter(s=>s.arrival!=null).length*w.runs};
+ const reports=train.runs.filter(run=>run.status==='ok'&&run.date>=w.from&&run.date<=w.to)
+  .reduce((total,run)=>total+run.delays.filter(delay=>delay!=null).length,0);
+ return {id:train.id,number:train.number,type:train.type,origin:train.origin,origin_ko:first.station_ko,destination:train.destination,destination_ko:last.station_ko,
+  calls:[...new Set(stops.map(s=>s.station))],dep:first.departure,arr:last.arrival,off:last.arrival_day_offset||0,runs:w.runs,share:w.share_punctual??null,stops:reports};
 }
 const typeRank=type=>{const i=TYPE_ORDER.indexOf(type);return i<0?TYPE_ORDER.length:i;};
 export const sortRows=rows=>[...rows].sort((a,b)=>typeRank(a.type)-typeRank(b.type)||a.number-b.number||a.id.localeCompare(b.id));
@@ -21,19 +22,22 @@ const shown=r=>r.runs>=MIN_DAYS?r.share:null,ranked=rows=>rows.filter(r=>r.runs>
 // What a search result shows for this page.
 export function pageInfo(rows,month,locale='en'){
  if(!rows?.length||!month?.from)return null;
- const L=localeUtils(locale),window=L.windowPhrase(month.from,month.to);
+ const L=localeUtils(locale),window=L.windowPhrase(month.from,month.to,month.days);
  if(locale==='ko')return {title:'전체 열차의 지연과 5분 이내 도착 비율 · Korean Train Stats',description:`코레일 KTX·ITX·무궁화호 ${num(rows.length)}편의 ${window} 도착 기록을 비교합니다. 열차별 5분 이내 도착 비율과 운행 구간을 확인하세요.`,crumbs:[{name:'전체 열차'}]};
  return {title:'All Korail trains and their punctuality · Korean Train Stats',
   description:`Which KTX, ITX and Mugunghwa trains run on time? Compare delays on all ${num(rows.length)} trains: share of stops within 5 min over ${window}.`,crumbs:[{name:'All trains'}]};
 }
 const href=(id,locale)=>`${locale==='ko'?'ko/':''}train/${encodeURIComponent(id)}/`,name=(r,locale)=>`${esc(locale==='ko'?localizeTrain(r).type:r.type)} ${esc(r.number)}`;
-const card=(title,note,inner,id='')=>`<div class="chart-card"${id?` id="${id}"`:''}><div class="block-title"><h2>${title}</h2>${note?`<span class="meta">${esc(note)}</span>`:''}</div>${inner}</div>`;
-const rank=(r,locale)=>`<a class="rank-row" href="${href(r.id,locale)}"><span class="rank-name">${name(r,locale)}</span><span class="rank-route">${esc(locale==='ko'?stationName(r.origin):r.origin)} → ${esc(locale==='ko'?stationName(r.destination):r.destination)}</span><span class="rank-share">${bar(r.share)}</span></a>`;
-const arrival=r=>`${esc(r.arr)}${r.off?`<sup>+${r.off}</sup>`:''}`;
+const routeName=(row,locale)=>{
+ const {origin,destination}=locale==='ko'?localizeTrain(row):row;
+ return `${origin} → ${destination}`;
+};
+const rank=(r,locale)=>`<a class="rank-row" href="${href(r.id,locale)}"><span class="rank-name">${name(r,locale)}</span><span class="rank-route">${esc(routeName(r,locale))}</span><span class="rank-share">${bar(r.share)}</span></a>`;
+const arrival=r=>r.arr==null?'—':`${esc(r.arr)}${r.off?`<sup>+${r.off}</sup>`:''}`;
 function tableRow(r,locale){
- const ko=locale==='ko',s=shown(r),route=ko?`${stationName(r.origin)} → ${stationName(r.destination)}`:`${r.origin} → ${r.destination}`;
- return `<tr data-type="${esc(group(r.type))}" data-from="${esc(r.origin)}" data-to="${esc(r.destination)}" data-calls="${esc(r.calls.join('|'))}" data-num="${r.number}" data-route="${esc(route)}" data-dep="${minutes(r.dep)}" data-arr="${minutes(r.arr)+r.off*1440}" data-share="${s==null?'':s}">`
-  +`<td class="t"><a href="${href(r.id,locale)}">${name(r,locale)}</a></td><td class="r">${esc(route)}</td><td class="dep">${esc(r.dep)}</td><td class="arr">${arrival(r)}</td>`
+ const s=shown(r),route=routeName(r,locale);
+ return `<tr data-type="${esc(group(r.type))}" data-from="${esc(r.origin)}" data-to="${esc(r.destination)}" data-calls="${esc(r.calls.join('|'))}" data-num="${r.number}" data-route="${esc(route)}" data-dep="${scheduledMinute(r.dep)??''}" data-arr="${scheduledMinute(r.arr,r.off)??''}" data-share="${s==null?'':s}">`
+  +`<td class="t"><a href="${href(r.id,locale)}">${name(r,locale)}</a></td><td class="r">${esc(route)}</td><td class="dep">${esc(r.dep??'—')}</td><td class="arr">${arrival(r)}</td>`
   +`<td class="s">${bar(s)}</td></tr>`;
 }
 const SORTS=[['','Train type'],['num:ascending','Train number'],['dep:ascending','Departs, earliest'],['arr:ascending','Arrives, earliest'],['share:descending','Within 5 min, highest'],['share:ascending','Within 5 min, lowest'],['route:ascending','Route']];
@@ -44,10 +48,10 @@ export function renderTrains(rows,month,locale='en'){
  const total=num(rows.length),withShare=ranked(rows);
  const perfect=withShare.filter(r=>r.share>=1).length;
  const tie=(a,b)=>b.stops-a.stops||a.id.localeCompare(b.id);
- const best=[...withShare].sort((a,b)=>b.share-a.share||tie(a,b)).slice(0,5),worst=[...withShare].sort((a,b)=>a.share-b.share||a.stops-b.stops||a.id.localeCompare(b.id)).slice(0,5);
- const head=`<div class="train-intro train-head"><div class="train-lead">${backBtn}<div><h1>All trains</h1><p class="meta">${metaLine(`${total} trains`,span(month.from,month.to),'% = share of stops within 5&nbsp;min')}</p>`
-  +`<p class="meta train-stats">${stat(pct0(month.summary.all.share_punctual),'stops within 5 min')}${stat(num(perfect),'trains had no late stop')}</p></div></div></div>`;
- const lists=`<div class="trains-lists">${card('Most punctual','',`<div class="rank-rows">${best.map(rank).join('')}</div><p class="rank-note">${num(perfect)} trains were within 5 min at every stop${perfect>=5?'; these have the most stops':''}.</p>`)}`
+ const best=[...withShare].sort((a,b)=>b.share-a.share||tie(a,b)).slice(0,5),worst=[...withShare].sort((a,b)=>a.share-b.share||tie(a,b)).slice(0,5);
+ const head=`<div class="train-intro train-head"><div class="train-lead">${backBtn}<div><h1>All trains</h1><p class="meta">${metaLine(`${total} trains`,span(month.from,month.to,month.days),'% = share of stops within 5&nbsp;min')}</p>`
+  +`<p class="meta train-stats">${stat(pct0(month.summary.all.share_punctual),'stops within 5 min')}${stat(num(perfect),'trains with no reported late stop')}</p></div></div></div>`;
+ const lists=`<div class="trains-lists">${card('Most punctual','',`<div class="rank-rows">${best.map(rank).join('')}</div><p class="rank-note">Of trains with at least ${RANK_DAYS} recorded days, ${num(perfect)} had no reported late stop.${perfect>=5?' These have the most arrival reports.':''}</p>`)}`
   +`${card('Least punctual','',`<div class="rank-rows">${worst.map(rank).join('')}</div><p class="rank-note">Trains with at least ${RANK_DAYS} recorded days.</p>`)}</div>`;
  const boxes=[];for(const r of rows){const g=group(r.type),box=boxes.find(b=>b.g===g);if(box)box.n++;else boxes.push({g,n:1});}
  const stations=[...new Set(rows.flatMap(r=>[r.origin,r.destination]))].sort((a,b)=>a.localeCompare(b)),options=stations.map(s=>`<option>${esc(s)}</option>`).join(''),
@@ -58,7 +62,7 @@ export function renderTrains(rows,month,locale='en'){
   +`<div class="trains-field"><label for="trains-to">Final destination</label><select id="trains-to"><option value="">Any destination</option>${options}</select></div>`
   +`<div class="trains-field sort-field"><label for="trains-sort">Sort by</label><select id="trains-sort">${SORTS.map(([v,t])=>`<option value="${v}">${t}</option>`).join('')}</select></div></form>`
   +`<div class="trains-status" id="trains-status" hidden><p class="meta" id="trains-count" aria-live="polite">${total} of ${total} trains</p><button type="button" id="trains-reset" hidden>Reset</button></div>`
-  +`<div class="trains-key">${shareLegend('',null)}<span class="meta">A dash means fewer than ${MIN_DAYS} recorded days</span></div>`;
+  +`<div class="trains-key">${shareLegend('',null)}<span class="meta">A dash means fewer than ${MIN_DAYS} recorded days or no reported arrivals.</span></div>`;
  const table=`<table class="trains-table" role="table"><thead><tr>${th('num','Train')}${th('route','Route')}${th('dep','Departs')}${th('arr','Arrives')}${th('share','Within 5 min','s')}</tr></thead><tbody id="trains-rows" data-cap="${ROW_CAP}">${rows.map(tableRow).join('')}</tbody></table>`
   +`<p class="trains-empty" id="trains-empty" hidden>No trains match these filters.</p>`;
  return head+lists+card('Find a train','',filters+table,'find');
@@ -70,8 +74,8 @@ function renderKoreanTrains(rows,month){
  rows=sortRows(rows);
  const ko=localeUtils('ko'),total=num(rows.length),withShare=ranked(rows),perfect=withShare.filter(r=>r.share>=1).length;
  const tie=(a,b)=>b.stops-a.stops||a.id.localeCompare(b.id);
- const best=[...withShare].sort((a,b)=>b.share-a.share||tie(a,b)).slice(0,5),worst=[...withShare].sort((a,b)=>a.share-b.share||a.stops-b.stops||a.id.localeCompare(b.id)).slice(0,5);
- const head=`<div class="train-intro train-head"><div class="train-lead">${ko.backBtn}<div><h1>전체 열차</h1><p class="meta">${metaLine(`열차 ${total}편`,ko.span(month.from,month.to),'%는 도착 기록 중 5분 이내에 도착한&nbsp;비율')}</p>`
+ const best=[...withShare].sort((a,b)=>b.share-a.share||tie(a,b)).slice(0,5),worst=[...withShare].sort((a,b)=>a.share-b.share||tie(a,b)).slice(0,5);
+ const head=`<div class="train-intro train-head"><div class="train-lead">${ko.backBtn}<div><h1>전체 열차</h1><p class="meta">${metaLine(`열차 ${total}편`,ko.span(month.from,month.to,month.days),'%는 도착 기록 중 5분 이내에 도착한&nbsp;비율')}</p>`
   +`<p class="meta train-stats">${stat(pct0(month.summary.all.share_punctual),'5분 이내 도착 비율')}${stat(num(perfect)+'편','기록된 모든 도착이 5분 이내인 열차')}</p></div></div></div>`;
  const lists=`<div class="trains-lists">${card('5분 이내 도착 비율 상위 열차','',`<div class="rank-rows">${best.map(r=>rank(r,'ko')).join('')}</div><p class="rank-note">${RANK_DAYS}일 이상 운행 기록이 있는 열차를 비교합니다. 이 중 ${num(perfect)}편은 기록된 모든 도착이 5분 이내입니다.${perfect>=5?' 위 열차는 그중 정차 기록이 가장 많은 열차입니다.':''}</p>`)}`
   +`${card('5분 이내 도착 비율 하위 열차','',`<div class="rank-rows">${worst.map(r=>rank(r,'ko')).join('')}</div><p class="rank-note">${RANK_DAYS}일 이상 운행 기록이 있는 열차를 비교합니다. 지연 정보가 없는 도착 기록은 비율에서 제외합니다.</p>`)}</div>`;

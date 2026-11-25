@@ -1,6 +1,6 @@
-import {esc,num,pct0,shareLegend,bar,empty,ROW_CAP,stationSearchKey,tableHeading as th,stat} from './utils.js';
+import {esc,num,pct0,shareLegend,bar,empty,ROW_CAP,stationSearchKey,tableHeading as th,stat,card} from './utils.js';
 import {localeUtils,localizeTrain} from './locale.js';
-import {card,trainCount} from './station.js';
+import {trainCount} from './station.js';
 // The all-stations page (stations/): top lists, a name search and type boxes, and a table with a row for every station where a train reported an arrival in the past month.
 // It needs no browser, so scripts/build.mjs builds the whole page, links included, and trains-page.js only adds the controls.
 const GROUPS=['KTX','ITX','Saemaeul','Mugunghwa','Other'];
@@ -20,7 +20,7 @@ export function stationList(stations,calls){
 // What a search result shows for this page.
 export function pageInfo(rows,month,locale='en'){
  if(!rows?.length||!month?.from)return null;
- const L=localeUtils(locale),window=L.windowPhrase(month.from,month.to);
+ const L=localeUtils(locale),window=L.windowPhrase(month.from,month.to,month.days);
  if(locale==='ko')return {title:'전체 역의 열차 도착 지연과 5분 이내 도착 비율 · Korean Train Stats',description:`코레일 열차가 정차한 역 ${num(rows.length)}곳의 ${window} 도착 기록을 비교합니다. 역별 정차 열차 수와 5분 이내 도착 비율을 확인하세요.`,crumbs:[{name:'전체 역'}]};
  return {title:'All Korail stations and their punctuality · Korean Train Stats',description:`Which stations see the most delays? Compare ${num(rows.length)} stations by trains and share of stops within 5 min over ${window}.`,crumbs:[{name:'All stations'}]};
 }
@@ -40,7 +40,7 @@ export function renderStations(rows,month,locale='en'){
  if(!rows?.length||!month?.from)return empty(t('No stations with a reported stop in the past month.','이 기간에 도착 기록이 있는 역이 없습니다.'));
  rows=[...rows].sort(byName(locale,r=>ko?r.nameKo:r.name));
  const total=num(rows.length),arrivals=rows.reduce((a,r)=>a+r.arrivals,0),all=rows.reduce((a,r)=>a+r.arrivals*r.share,0)/arrivals;
- const head=`<div class="train-intro train-head"><div class="train-lead">${backBtn}<div><h1>${t('All stations','전체 역')}</h1><p class="meta">${metaLine(ko?`역 ${total}곳`:`${total} stations`,period(month.from,month.to),t('% = share of stops within 5&nbsp;min','%는 도착 기록 중 5분 이내에 도착한&nbsp;비율'))}</p>`
+ const head=`<div class="train-intro train-head"><div class="train-lead">${backBtn}<div><h1>${t('All stations','전체 역')}</h1><p class="meta">${metaLine(ko?`역 ${total}곳`:`${total} stations`,period(month.from,month.to,month.days),t('% = share of stops within 5&nbsp;min','%는 도착 기록 중 5분 이내에 도착한&nbsp;비율'))}</p>`
   +`<p class="meta train-stats">${stat(pct0(all),t('stops within 5 min','5분 이내 도착 비율'))}</p></div></div></div>`;
  // Busiest is a way to find the big stations. Most punctual is left out: many small stations tie at 100%.
  const ranked=rows.filter(r=>r.arrivals>=RANK_ARRIVALS);

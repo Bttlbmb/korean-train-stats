@@ -1,30 +1,32 @@
 import * as en from './utils.js';
 
 export const korean = locale => locale === 'ko';
+export const arrivalDataNote = locale => `<p class="meta arrival-data-note">${korean(locale)?'서로 맞지 않는 도착 기록이 있어 집계에 영향을 줄 수 있습니다.':'Some arrival reports conflict and may affect these figures.'}</p>`;
 let stationNames = {};
 // The build configures this map before rendering; the Korean front page restores its embedded copy before a browser refresh.
 // Source Korean names cover historical stations too. localizeTrain changes labels only, leaving IDs and number/filter values intact.
 export const configureKoreanStations = names => { stationNames = names; };
-export const stationName = name => stationNames[name] || name;
+export const stationName = name => Object.hasOwn(stationNames,name) ? stationNames[name] : name;
 export function localizeTrain(train) {
  const names = {'ITX-Saemaeul':'ITX-새마을','ITX-Maum':'ITX-마음','ITX-Cheongchun':'ITX-청춘','Saemaeul':'새마을호','Mugunghwa':'무궁화호','Other':'기타'};
  return {...train, type:names[train.type] || train.type,
-  origin:stationName(train.origin), destination:stationName(train.destination)};
+  origin:train.origin_ko||stationName(train.origin), destination:train.destination_ko||stationName(train.destination)};
 }
-const date = (iso, year=false) => iso ? new Date(iso+'T12:00:00+09:00').toLocaleDateString('ko-KR', {
- ...(year ? {year:'numeric'} : {}), month:'long', day:'numeric', timeZone:'Asia/Seoul'
-}) : '—';
+const date=en.dateLabels('ko-KR','long');
 const range = (a,b,year=true) => a===b ? date(a,year) : `${date(a,year)}–${date(b,year)}`;
-const dayCount = (a,b) => Math.round((Date.parse(b)-Date.parse(a))/864e5)+1;
-const span = (a,b) => { const n=dayCount(a,b),label=n===30?'최근 30일':`${n}일`,nb=x=>`<span class="nb">${x}</span>`; return a===b?`${label} (${nb(date(a,true))})`:`${label} (${nb(`${date(a,true)}부터`)} ${nb(`${date(b,true)}까지`)})`; };
-const windowPhrase = (a,b) => dayCount(a,b)===30 ? '최근 30일' : `수집 완료 ${dayCount(a,b)}일`;
+const windowLabel = (a,b,days=en.dayCount(a,b),limit=30) => {
+ const length=en.dayCount(a,b);
+ return days===length ? days===limit?`최근 ${days}일`:`${days}일` : `수집 완료 ${days}일`;
+};
+const span = (a,b,days,limit) => { const label=windowLabel(a,b,days,limit),nb=x=>`<span class="nb">${x}</span>`; return a===b?`${label} (${nb(date(a,true))})`:`${label} (${nb(`${date(a,true)}부터`)} ${nb(`${date(b,true)}까지`)})`; };
+const windowPhrase = (a,b,days=en.dayCount(a,b)) => days===30&&days===en.dayCount(a,b) ? '최근 30일' : `수집 완료 ${days}일`;
 const minutes = n => n<0 ? `-${minutes(-n)}` : n>=60 ? `${Math.floor(n/60)}시간${n%60?` ${n%60}분`:''}` : `${n}분`;
 const delay = n => n == null ? '—' : `${n>0?'+':''}${minutes(n)}`;
 const scale = [['ontime','5분 이내'],['d2','6–10분'],['d3','11–20분'],['d4','21–30분'],['d5','30분 초과']];
 const scaleLegend = (extra='') => `<div class="legend">${scale.map(([k,t])=>`<span><i class="swatch" style="background:var(--${k})"></i>${t}</span>`).join('')}${extra}</div>`;
 const shareLegend = (cls='',lead=true) => `<div class="legend${cls?' '+cls:''}">${lead?'<span class="legend-label">도착 기록 중:</span>':''}<span><i class="swatch" style="background:var(--ontime-mark)"></i>5분 이내</span><span><i class="swatch" style="background:var(--d3)"></i>5분 넘게 늦음</span></div>`;
 const footer = meta => `<p>코레일이 제공한 도착 지연 정보를 바탕으로 집계한 자료이며, 코레일의 공식 통계가 아닙니다. 오류나 누락이 있을 수 있으며, 정확성과 완전성을 보장하지 않습니다.</p><p>5분 이내 도착 비율은 지연 정보가 있는 역별 도착 기록 중 지연 시간이 5분 이내인 기록의 비율입니다. 예정 시각보다 일찍 도착한 경우도 포함하며, 열차의 첫 역과 지연 정보가 없는 기록은 제외합니다. 이 비율은 코레일이 발표하는 정시율과 집계 기준이 다릅니다. 지연 시간의 중앙값은 5분 넘게 늦은 도착 기록만 대상으로, 5분을 넘은 부분이 아닌 지연 시간 전체를 기준으로 계산하며 분 단위로 반올림합니다.</p><p>자료의 편집·집계 결과: <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. 원자료에 대한 코레일의 권리는 그대로 유지됩니다.</p><p>열차 목록·역 위치: Mikołaj Kuranowski의 GTFS (CC BY 4.0) · 업데이트: ${en.esc(meta.generated_at?new Date(meta.generated_at).toLocaleString('ko-KR',{timeZone:'Asia/Seoul',hour12:false})+' (한국 시간)':'자료 없음')}</p>`;
-export const localeUtils = locale => korean(locale) ? {...en,date,range,span,windowPhrase,delay,minutes,scaleLegend,shareLegend,footer,
+export const localeUtils = locale => korean(locale) ? {...en,date,range,span,windowLabel,windowPhrase,delay,minutes,scaleLegend,shareLegend,footer,
  num:n=>n==null?'—':Number(n).toLocaleString('ko-KR'),
  backBtn:en.backBtn.replaceAll('Back to front page','처음으로').replace('href="./"','href="ko/"')
 } : en;

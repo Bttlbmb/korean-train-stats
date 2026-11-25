@@ -1,5 +1,5 @@
 // The all-trains page (js/trains.js), a station page (js/station.js), and the all-stations page (js/stations.js) arrive built with every row in their table. This shows the controls and makes the table filterable and sortable.
-// Station pages have a To select (labeled Final destination) and train-number search; all-stations pages have a station-name search; a journey page has departure-hour and arrival-hour selects, and the bars of its hour chart pick the departure hour. Each control allows it to be missing.
+// Station pages have a Going to select and a train-number search. Station directories search by name, and journeys filter by departure or arrival hour.
 // A row's data-type can list several types (a station is served by more than one).
 // URL keys: types/from/calls/to/sort plus number for train tables, dep/arr (a departure or arrival hour, 0-23) for a journey page, or q for the station directory. Controls may be absent on a shared consumer.
 // replaceState avoids a history entry per edit; a shared URL or Back from a train restores the current choices, including language switches.
@@ -9,7 +9,7 @@ const form=document.querySelector('#trains-filters');
 if(form){
  const $=s=>document.querySelector(s),status=$('#trains-status'),count=$('#trains-count'),reset=$('#trains-reset'),none=$('#trains-empty'),body=$('#trains-rows'),
   from=$('#trains-from'),to=$('#trains-to'),calls=$('#trains-calls'),q=$('#stations-q'),number=$('#trains-number'),depHour=$('#trains-dep'),arrHour=$('#trains-arr'),bars=[...document.querySelectorAll('.hour-col[data-hour]')],sortSelect=$('#trains-sort'),heads=[...document.querySelectorAll('.trains-table th[data-key]')],boxes=[...form.querySelectorAll('input[type=checkbox]')],
-  journey=$('#trains-journey'),journeys=new Map([...(to?.options||[])].map(o=>[o.value,o.dataset.journey])),rows=[...body.children],format=n=>n.toLocaleString(ko?'ko-KR':'en'),stationLabels=new Map([from,to,calls].flatMap(select=>[...(select?.options||[])]).map(o=>[o.value,o.textContent])),value=select=>select?.value||'',hourOf=minutes=>Math.floor(minutes%1440/60);
+  journey=$('#trains-journey'),journeys=new Map([...(to?.options||[])].map(o=>[o.value,o.dataset.journey])),rows=[...body.children],format=n=>n.toLocaleString(ko?'ko-KR':'en'),stationLabels=new Map([from,to,calls].flatMap(select=>[...(select?.options||[])]).map(o=>[o.value,o.textContent])),value=select=>select?.value||'',hourOf=minutes=>minutes===''?null:Math.floor(minutes%1440/60);
  rows.forEach((row,i)=>row._i=i);
  let key='',dir='ascending',all=false;
  // A table whose body sets data-cap shows that many trains until the reader asks for all of them. The other rows stay in the page, and filters and sorting work on every row.
@@ -47,13 +47,13 @@ if(form){
   // A station page links to the journey page from the station to the one chosen, when there is one.
   if(journey){const page=journeys.get(value(to));journey.hidden=!page;if(page){journey.href=page;journey.textContent=journey.dataset.text.replace('{to}',stationLabels.get(value(to)));}}
  }
- // Trains without a share (a dash) always come last.
+ // A missing share or time sorts last in either direction.
  function sort(){
   const sign=dir==='ascending'?1:-1;
   rows.sort((x,y)=>{
    if(!key)return x._i-y._i;
    const a=x.dataset[key],b=y.dataset[key];
-   if(key==='share'){if(a===''||b==='')return (a===''?1:0)-(b===''?1:0)||x._i-y._i;return sign*(a-b)||x._i-y._i;}
+   if(a===''||b==='')return Number(a==='')-Number(b==='')||x._i-y._i;
    if(key==='route')return sign*(ko?a.localeCompare(b,'ko'):a.localeCompare(b))||x._i-y._i;
    return sign*(a-b)||x._i-y._i;
   });
@@ -94,7 +94,7 @@ if(form){
  form.addEventListener('submit',event=>event.preventDefault());
  form.addEventListener('input',event=>{
   if(event.target===sortSelect){[key,dir]=sortSelect.value?sortSelect.value.split(':'):['','ascending'];sort();}
-  else{options();apply();}
+  else{if(boxes.includes(event.target)||stationKeys.some(k=>menus[k]===event.target))options();apply();}
   sync();
  });
  heads.forEach(h=>h.querySelector('button').addEventListener('click',()=>{

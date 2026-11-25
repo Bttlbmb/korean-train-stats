@@ -1,6 +1,6 @@
-import {pairStats,resultHTML,journeysAt,journeyCount,tableRow,journeySegments} from './journeys.js';
+import {indexJourneys,pairStats,resultHTML,journeysAt,journeyOptions,tableRow} from './journeys.js';
 import {stationSearchKey,trainNumberKey,ROW_CAP} from './utils.js';
-// The all-journeys page (js/journeys.js) arrives built with the busiest journeys in its table. This loads journeys/data.json, offers every station in the From and To boxes, shows the panel for a chosen pair,
+// The all-journeys page (js/journeys.js) arrives built with the busiest journeys in its table. This loads journeys/pairs.json, offers every station in the From and To boxes, shows the panel for a chosen pair,
 // and rebuilds the table with every journey of a chosen station (any number of trains). If the data cannot load, the page stays as the built list.
 // The address holds from/to, catalogue sort, and the selected panel's number filter (?from=Seoul&to=Busan&number=1).
 // replaceState avoids one history entry per keystroke; returning from a train page restores this entry's filters.
@@ -20,7 +20,7 @@ if(form){
   if(retry)retry.disabled=true;
   form.closest('#find').setAttribute('aria-busy','true');
   try{
-   const response=await fetch(new URL('../journeys/data.json',import.meta.url));if(!response.ok)throw Error(response.status);
+   const response=await fetch(new URL('../journeys/pairs.json',import.meta.url));if(!response.ok)throw Error(response.status);
    const data=await response.json();
    start(data);
    notice?.remove();
@@ -31,7 +31,8 @@ if(form){
    if(!notice){notice=document.createElement('div');notice.id='journeys-load-error';notice.className='load-notice';notice.innerHTML=`<p role="status"></p><button type="button">${ko?'다시 시도':'Try again'}</button>`;form.closest('main').querySelector('.train-intro').after(notice);notice.querySelector('button').addEventListener('click',load);}
    const query=new URLSearchParams(location.search),from=query.get('from'),to=query.get('to');
    const requested=from&&to?`${from} → ${to}`:from||to||'';
-   notice.querySelector('p').textContent=ko?`${requested?`${requested} 구간의 자료를`:'구간 자료를'} 불러오지 못했습니다. 페이지에 포함된 구간 목록을 표시합니다.`:`Couldn’t load ${requested||'journey search'}. Showing the journey list included in this page.`;
+   const hasCatalogue=document.querySelector('#journeys-rows').children.length>0;
+   notice.querySelector('p').textContent=ko?`${requested?`${requested} 구간의 자료를`:'구간 자료를'} 불러오지 못했습니다.${hasCatalogue?' 페이지에 포함된 구간 목록을 표시합니다.':''}`:`Couldn’t load ${requested||'journey search'}.${hasCatalogue?' Showing the journey list included in this page.':''}`;
    notice.querySelector('button').disabled=false;
   }finally{loading=false;form.closest('#find').setAttribute('aria-busy','false');}
  }
@@ -44,13 +45,9 @@ function start(data){
  let rows=built;
  built.forEach((row,i)=>row._i=i);
  let key='',dir='ascending',all=false,number='',trainsAll=false;
- const total=journeyCount(data),stations=data.stations,index=new Map(stations.map((s,i)=>[s[0],i])),label=i=>stations[i][ko?1:0],any=from.options[0].textContent;
- // next/before power both station menus. Use the same segment rule as the results, including loop ambiguity and direction.
- const next=stations.map(()=>new Set()),before=stations.map(()=>new Set());
- for(const [,,,calls] of data.trains)for(const [i,j] of journeySegments(calls)){
-  next[calls[i][0]].add(calls[j][0]);before[calls[j][0]].add(calls[i][0]);
- }
- // The From and To boxes share the station directory's matching rules. The hidden select keeps each station's public English query key.
+ const indexed=indexJourneys(data),{next,before,total}=journeyOptions(indexed),{stations,keys}=indexed,index=new Map(keys.map((key,i)=>[key,i])),any=from.options[0].textContent;
+ const label=i=>{const [en,kr]=stations[i];return ko?kr:keys[i]===en?en:`${en} (${kr})`;};
+ // Preserve existing English query names where unique. Shared names use the station ID.
  function combobox(select){
   const field=select.closest('.trains-field'),input=document.createElement('input'),list=document.createElement('ul');
   input.type='text';input.id=`${select.id}-search`;input.className='station-input';input.placeholder=any;input.autocomplete='off';input.spellcheck=false;
@@ -109,8 +106,8 @@ function start(data){
  // Offer only the stations that still lead to a journey, given the other station.
  function fill(select,list,current){
   list.sort((a,b)=>ko?label(a).localeCompare(label(b),'ko'):label(a).localeCompare(label(b)));
-  select.replaceChildren(new Option(any,''),...list.map(i=>{const o=new Option(label(i),stations[i][0]);o.dataset.alt=stations[i][ko?0:1];return o;}));
-  select.value=list.some(i=>stations[i][0]===current)?current:'';
+  select.replaceChildren(new Option(any,''),...list.map(i=>{const o=new Option(label(i),keys[i]);o.dataset.alt=stations[i][ko?0:1];return o;}));
+  select.value=list.some(i=>keys[i]===current)?current:'';
  }
  function options(){
   const f=index.get(value(from)),o=index.get(value(to));
@@ -123,13 +120,13 @@ function start(data){
   const f=value(from),o=value(to),pair=f&&o,some=!pair&&(f||o);
   // One station lists all its journeys, built here; none lists the busiest, as built; a chosen pair is answered by the panel alone, so the table and its count step aside, and Reset brings them back.
   if(!pair){
-   if(some){body.innerHTML=journeysAt(data,index.get(f)??null,index.get(o)??null).map(r=>tableRow(r,locale)).join('');rows=[...body.children];rows.forEach((row,i)=>row._i=i);}
+   if(some){body.innerHTML=journeysAt(indexed,index.get(f)??null,index.get(o)??null).map(r=>tableRow(r,locale)).join('');rows=[...body.children];rows.forEach((row,i)=>row._i=i);}
    else{built.forEach(row=>row.hidden=false);body.replaceChildren(...built);rows=built;}
   }
   const n=pair?0:rows.length;
   count.hidden=!!pair;count.textContent=some?count.dataset.some.replace('{n}',format(n)):count.dataset.text.replace('{n}',format(n)).replace('{total}',format(total));
-  none.hidden=n>0||!!pair;table.style.display=pair?'none':'';note.hidden=!!(f||o);
-  if(pair){result.innerHTML=resultHTML(pairStats(data,index.get(f),index.get(o)),stations[index.get(f)],stations[index.get(o)],locale);result.hidden=false;trainsAll=false;filterTrains();}else{result.hidden=true;number='';sort();}
+  none.hidden=n>0||!!pair||(!some&&!built.length);table.style.display=n?'':'none';note.hidden=!!(f||o);
+  if(pair){result.innerHTML=resultHTML(pairStats(indexed,index.get(f),index.get(o)),stations[index.get(f)],stations[index.get(o)],locale);result.hidden=false;trainsAll=false;filterTrains();}else{result.hidden=true;number='';sort();}
  }
  // Number search filters departures, not the route-wide figures or catalogue. Do not recompute the aggregate percentage here.
  // hidden means a nonmatch; over means a match beyond the current row cap. Reset the latter on each edit, not the former.

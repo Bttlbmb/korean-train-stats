@@ -15,21 +15,50 @@ export const pct0 = n => n == null ? '—' : n >= 1 ? '100%' : `${Math.min(99,Ma
 export const backBtn = '<a class="back-btn" href="./" aria-label="Back to front page" data-tip="Back to front page"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M13 8H3m5-5L3 8l5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></a>';
 // A long train table shows this many trains until the reader asks for all of them (js/trains-page.js).
 export const ROW_CAP = 40;
-// A delay of an hour or more reads as hours and minutes (99 is 1 h 39 min, 179 is 2 h 59 min); a shorter one stays in minutes, and an early arrival follows the same rule with a minus sign (-63 is -1 h 3 min). The month page's delay_text in the backend's exporter/export_site_data.py writes the same.
+// A delay of an hour or more reads as hours and minutes (99 is 1 h 39 min, 179 is 2 h 59 min); a shorter one stays in minutes, and an early arrival follows the same rule with a minus sign (-63 is -1 h 3 min).
 export const minutes = n => n<0 ? `-${minutes(-n)}` : n>=60 ? `${Math.floor(n/60)} h${n%60?` ${n%60} min`:''}` : `${n} min`;
 export const delay = n => n == null ? '—' : `${n>0?'+':''}${minutes(n)}`;
-export const date = (s,year=false) => s ? new Date(s+'T12:00:00+09:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',...(year?{year:'numeric'}:{}) ,timeZone:'Asia/Seoul'}).replace('Sept','Sep') : '—';
+export const scheduledMinute = (time,day) => time==null?null:+time.slice(0,2)*60+ +time.slice(3)+(day||0)*1440;
+// Runs here share a timetable. Mark both reports when consecutive arrivals imply a reversal.
+export function conflictingArrivals(stops,runs){
+ const calls=stops.map(s=>[s.ordinal,scheduledMinute(s.arrival,s.arrival_day_offset)]),flagged=new Set();
+ // The origin is a departure. A missing report interrupts the comparison.
+ for(let i=2;i<calls.length;i++){
+  const [before,first]=calls[i-1],[after,second]=calls[i];
+  if(first==null||second==null)continue;
+  if(runs.some(({delays})=>delays?.[before]!=null&&delays[after]!=null&&second+delays[after]<first+delays[before])){
+   flagged.add(before);flagged.add(after);
+  }
+ }
+ return flagged;
+}
+// Reuse the two formats per language across the static pages.
+export function dateLabels(locale,month){
+ const options={day:'numeric',month,timeZone:'Asia/Seoul'};
+ const formats=[new Intl.DateTimeFormat(locale,options),new Intl.DateTimeFormat(locale,{...options,year:'numeric'})];
+ return (iso,year=false)=>{
+  if(!iso)return '—';
+  const value=new Date(iso+'T12:00:00+09:00');
+  return Number.isNaN(+value)?String(value):formats[Number(!!year)].format(value);
+ };
+}
+const englishDate=dateLabels('en-GB','short');
+export const date=(iso,year=false)=>englishDate(iso,year).replace('Sept','Sep');
 export const range = (a,b,year=true) => a===b ? date(a,year) : `${date(a)} – ${date(b,year)}`;
-// The window a page's figures cover, as "Last 30 days from 17 Oct to 15 Nov 2026", so a reader sees a deliberate 30-day window rather than all the data there is. A shorter window (collection is new) says its day count instead. The dates stay on one line.
 export const dayCount = (a,b) => Math.round((Date.parse(b)-Date.parse(a))/864e5)+1;
-// "over the last 30 days" in a search result; a window shorter than 30 days (collection is new) names its length instead.
+export const isYesterdayInKorea = iso => iso===new Date(Date.now()-864e5).toLocaleDateString('en-CA',{timeZone:'Asia/Seoul'});
+// The exporter selects completed dates. A gap extends the calendar span without adding a day of data.
+export function windowLabel(a,b,days=dayCount(a,b),limit=30){
+ const length=dayCount(a,b),unit=days===1?'day':'days';
+ return days===length ? days===limit?`Last ${days} ${unit}`:`${days} ${unit}` : `${days} completed ${unit}`;
+}
 // The first of several wordings that fits `limit` characters (what a search result shows of a title or description), else the last and shortest.
 export const fitting = (limit,...options) => options.find(o=>o.length<=limit) || options.at(-1);
 // A page title, widest wording first: both words and the site name, both words alone, "delays" and the name, "delays" alone. A long title loses the name before it loses a word.
 export const TITLE_MAX = 60, BRAND = ' · Korean Train Stats';
 export const delaysTitle = (subject,both=true) => fitting(TITLE_MAX,...(both?[`${subject} delays and punctuality${BRAND}`,`${subject} delays and punctuality`]:[]),`${subject} delays${BRAND}`,`${subject} delays`);
-export const windowPhrase = (a,b) => dayCount(a,b)===30 ? 'the last 30 days' : `the ${dayCount(a,b)} days collected so far`;
-export const span = (a,b) => { const n=dayCount(a,b); return `${n===30?'Last 30 days':`${n} ${n===1?'day':'days'}`} <span class="nb">${a===b?`on ${range(a,b)}`:`from ${date(a)} to ${date(b,true)}`}</span>`; };
+export const windowPhrase = (a,b,days=dayCount(a,b)) => days===30&&days===dayCount(a,b) ? 'the last 30 days' : `${days} completed ${days===1?'day':'days'}`;
+export const span = (a,b,days,limit) => `${windowLabel(a,b,days,limit)} <span class="nb">${a===b?`on ${range(a,b)}`:`from ${date(a)} to ${date(b,true)}`}</span>`;
 // The parts of a header's meta line: one line each on phones, a dot between them on wider screens.
 export const metaLine = (...parts) => parts.map(s=>`<span class="meta-line">${s}</span>`).join('<span class="meta-sep"> · </span>');
 const stamp = s => s ? new Date(s).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Seoul'})+' KST' : 'Not available';
@@ -49,5 +78,6 @@ export const stat = (value,label) => `<span class="stat"><b>${value}</b><span>${
 export const tipText=(title,body='')=>`data-tip="${esc(title+'\n'+body)}"`;
 export function markTip(title,body=''){return `tabindex="0" ${tipText(title,body)} aria-label="${esc(title+'. '+body)}"`;}
 export function hiddenTable(caption,headers,rows){return `<div class="sr-only"><table><caption>${esc(caption)}</caption><thead><tr>${headers.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(row=>`<tr>${row.map(v=>`<td>${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;}
+export const card=(title,note,inner,id='')=>`<div class="chart-card"${id?` id="${id}"`:''}><div class="block-title"><h2>${title}</h2>${note?`<span class="meta">${esc(note)}</span>`:''}</div>${inner}</div>`;
 export function empty(message,link=''){return `<div class="empty"><h2>${esc(message)}</h2>${link}</div>`;}
 export async function getJSON(path,optional=false){const r=await fetch(new URL('../data/'+path,import.meta.url));if(optional&&r.status===404)return null;if(!r.ok)throw Error('Data could not be loaded');return r.json();}

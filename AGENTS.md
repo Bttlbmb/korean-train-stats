@@ -2,7 +2,7 @@
 
 ## Purpose and project state
 
-Maintain the website of Korean Train Stats, a static GitHub Pages site about the punctuality of Korail trains. The repository root is the published site. `data/` holds JSON that the exporter in the separate `backend` repository (`../backend`) writes; the pages and scripts here display it.
+Maintain the website of Korean Train Stats, a static GitHub Pages site about the punctuality of Korail trains. GitHub Pages publishes the output of `scripts/build.mjs`. `data/` holds JSON that the exporter in the separate `backend` repository (`../backend`) writes; the pages and scripts here display it.
 
 ## Read before working
 
@@ -22,7 +22,7 @@ Keep this file short. Link to the owning document rather than repeating its rule
 ## Implementation conventions
 
 - Plain HTML, CSS, and ES modules, with no framework or third-party scripts except Google Fonts. The only build step is `scripts/build.mjs`, which writes pages with the browser’s own render modules; keep those modules free of browser-only code at import. Use relative URLs; `404.html` alone uses root-relative ones, because it is served at any address. Keep the light theme, English and Korean versions, and the color meanings: green means on time (within 5 minutes), the warm ramp means late, grey is neutral, and blue marks focus only.
-- This repository is published in full. It never holds the database, scraper control files, or an API key.
+- The repository is public. Keep the database, scraper control files, and the API key in the backend.
 - Serve previews only on the local machine, with `python3 scripts/preview.py`.
 - Save screenshots, preview copies, logs, and one-off audit exports under `artifacts/`, which git ignores. Put lasting conclusions in the owning guide.
 

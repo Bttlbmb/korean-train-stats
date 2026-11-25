@@ -1,6 +1,6 @@
 # Korean language
 
-The Korean site lives under `/ko/`, with an equivalent for every English front, train, train-list, station, all-stations, all-journeys, day, and month page. Header language links keep the current page and the applicable list filters and sorting, including train-number search and a journey query whose data failed to load. Run `python3 scripts/preview.py` and open <http://127.0.0.1:8765/ko/>. The normal publishing build generates both languages.
+The Korean site lives under `/ko/`, with an equivalent for every English front, train, train-list, station, all-stations, journey, all-journeys, Stats, day, and month page. Header language links keep the current page and the applicable list filters and sorting, including train-number search and a journey query whose data failed to load. Run `python3 scripts/preview.py` and open <http://127.0.0.1:8765/ko/>. The normal publishing build generates both languages.
 
 ## Glossary
 
@@ -26,10 +26,10 @@ Railway labels follow the references below. Statistical labels describe this sit
 | Train-number search | 열차 번호 · 예: 237 | Use the complete number within the current list. Normalization and URL state follow the shared search controls in `BUILD_NOTES.md`. |
 | Retry a failed request | 다시 시도 | A loading failure is distinct from no matching journey or no recorded run. Retained figures keep their dates. |
 | A journey between two stations (all-journeys page) | 구간 · 출발역 · 도착역 | 전체 구간 is the page; the From and To dropdowns are 출발역 and 도착역 because any station may be chosen. 운행 구간 on the all-trains page means a train’s own route, so 구간 alone is the journey. Card notes say 도착역 도착 기록 중, never 두 번째 역. Unreviewed by a native reader. |
-| Typical scheduled time between two stations | 예정 소요 시간 | The median over the trains that serve the journey, from the timetable, not observed. 대표 was dropped because it reads as official. Shown as hours and minutes from 60 minutes (1시간 35분), unlike delays, which switch at 100. |
+| Typical scheduled time between two stations | 예정 소요 시간 | The median over the trains that serve the journey, from the timetable, not observed. 대표 was dropped because it reads as official. Uses hours and minutes from the same duration threshold as delay labels. |
 | Journey page and its button (all-journeys panel) | 구간 페이지 (phones 페이지) | Matches 전체 구간 and the day page’s “열차 페이지”; the long form is the button’s accessible name. Shown only when the journey has a page. |
 | Hour band of departure (journey page chart) | 출발 시간대별 · 출발 시간대(시) | 시간대 is the idiomatic hour band; 시각 stays for a clock time (예정 시각), so 시각대 is not used. Chart notes are full 합니다 sentences. |
-| Header figures (train, station, journey, day, and list pages) | 5분 이내 도착 비율 · 종착역 진주 도착이 5분 이내 (13일 중 2일) · 5분 초과 지연 기록이 있는 열차 (945편 중 427편) · 기록된 모든 도착이 5분 이내인 열차 · 5분 넘게 늦은 도착의 지연 시간 중앙값 | Each figure stands over its label, so a label is a noun phrase that reads without the figure. Unreviewed by a native reader. |
+| Header figures (train, station, journey, day, and list pages) | 5분 이내 도착 비율 · 종착역 도착이 5분 이내인 날 (13일 중 2일) · 5분 초과 지연 기록이 있는 열차 (945편 중 427편) · 기록된 모든 도착이 5분 이내인 열차 · 5분 넘게 늦은 도착의 지연 시간 중앙값 | Each figure stands over its label, so a label is a noun phrase that reads without the figure. Unreviewed by a native reader. |
 | Front-page lookup row | 내 열차는 보통 제시간에 도착할까요? · 열차 번호나 역 이름으로 찾아보세요. · 검색 · ‘대전’에 맞는 역이 없습니다. | 제시간에 as in the page title. Unreviewed by a native reader. |
 | Late train (front title and description) | 연착·지연 | 연착 is the everyday word for a late arrival; the site otherwise says 지연 (delay). Both appear together in the front page’s title and description only. Unreviewed. |
 | Journey headline | 5분 이내 · 10분 이내 · 15분 이내 · 예정 소요 시간 | Labels under the figures 49%, 82%, 96%, and 2시간 48분. 이내, never 이하. Under the title, 두 역에 모두 정차하는 열차 N편 says which trains the figures cover, and %는 부산 도착 기록 중 5분 이내에 도착한 비율 defines the percentages (on station, train, and list pages %는 도착 기록 중 5분 이내에 도착한 비율). Unreviewed. |
@@ -39,11 +39,11 @@ Railway labels follow the references below. Statistical labels describe this sit
 | Final destination filter and column | 종착역 | English “Final destination”; matches the train’s last stop, not intermediate stations. The unfiltered option is 전체 종착역 (“Any destination”) on the all-trains page; the station page’s column keeps the label. Sort labels end in 순 (열차 번호 순, 종착역 순, 이름 순). |
 | Trains stopping at a station | 정차 열차 · 열차 N편 정차 | Count distinct source train IDs (number plus display type), not visits. Table sort and column labels use 정차 열차; the type column is 정차 열차 종류. Where a loop train calls twice (Hongseong) the table counts stops: 전체 정차 N회 중 N회. |
 | Back arrow after another page of the site | 이전 페이지로 | The arrow goes back one step; its label when it leads to the front page is 처음으로. |
-| Short record on a train page | 기록이 N일뿐이어서 열차·역 목록에는 비율을 표시하지 않습니다 | A train with fewer than 10 recorded days keeps its figures; this line says why the lists show a dash. |
+| Short record on a train page | 기록이 N일뿐이어서 열차·역 목록에는 비율을 표시하지 않습니다 | A train with fewer than the [required recorded days](../BUILD_NOTES.md#display-thresholds) keeps its figures; this line says why the lists show a dash. |
 | Counters | 편 (trains) · 건 (arrival records) · 곳 (stations) · 개 (journeys) | 열차 429편, 도착 기록 10,261건, 역 272곳, 구간 176개. In a table cell under a column named 열차 the count is bare (203편), as on the station table; the lists and phone lines keep 열차. |
-| Basis of a count | 도착 기록이 N일 미만 | A station page shows a dash for a train with fewer than 10 days of reported arrivals at that station. Never 운행 기록, which suggests days the train ran. |
+| Basis of a count | 도착 기록이 N일 미만 | A station page shows a dash for a train with too few days of reported arrivals at that station. Never 운행 기록, which suggests days the train ran. |
 
-Use compact noun labels and neutral 합니다 sentences. Dates and weekdays use Korean formatting, with times in Korea time. Keep the brand Korean Train Stats. Service groups retain the existing classification: KTX, ITX-새마을, ITX-마음, ITX-청춘, 무궁화호, 기타. These groups can combine services; translation must not infer a specific train variant.
+Use compact noun labels and neutral 합니다 sentences. Dates and weekdays use Korean formatting, with times in Korea time. Keep the brand Korean Train Stats. Service groups retain the existing classification: KTX, ITX-새마을, ITX-마음, ITX-청춘, 새마을호, 무궁화호, 기타. These groups can combine services; translation must not infer a specific train variant.
 
 The percentage's definition stays in the footer. Avoid 정시율 on its own: readers could interpret it as a train-based measure. The footer says the share differs from the 정시율 that Korail publishes without naming Korail's definition, which sources give inconsistently (UIC's 15 minutes 59 seconds, or 5 minutes for KTX and 10 for other trains) and which has not been verified against a Korail source. Write 이내 for every limit that includes 5 minutes, never 이하. State the final-stop denominator as “도착 기록 30일 중 24일,” excluding days without a reported final arrival.
 
@@ -51,7 +51,7 @@ The percentage's definition stays in the footer. Avoid 정시율 on its own: rea
 
 Korean pages use the same data and chart calculations as English. Metadata, accessible labels, missing-data states, and legends are localized. Every indexable pair has its own canonical URL and reciprocal `hreflang` annotations. The built sitemap lists both languages. A missing `/ko/` address receives Korean wording from the shared GitHub Pages fallback.
 
-Station filter values remain the established English URL values while labels use Korean. Station names come from the exporter’s archive-wide `name_ko` field, supplemented by `station_ko` in the current train files. The build rejects an unresolved name. Korean month figures pool archived day records and preserve the exporter’s bucket counts and ranking order.
+Station filter values use the established English URL keys. The journey finder disambiguates shared names by ID. Korean station labels use source names from the station index and dated timetables. New exports also include Korean names in the front-page and biggest-delay records. Legacy exports use the archive’s name table. The build rejects an unresolved name. Korean month figures pool archived day records and preserve the exporter’s bucket counts and ranking order.
 
 ## References
 
