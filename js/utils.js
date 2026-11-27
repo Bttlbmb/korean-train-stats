@@ -1,0 +1,83 @@
+export const esc = value => String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+// Comparison keys only: displayed names, stable station IDs, and URL values keep the source spelling.
+// Shared by the station directory and journey comboboxes; the suffix needs a nonempty prefix (역곡 stays intact).
+export const stationSearchKey = value => String(value ?? '').toLowerCase().replace(/sh/g,'s').replace(/[^a-z0-9가-힣]/g,'').replace(/^(.+?)(?:station|역)$/,'$1');
+// Exact number matching accepts ticket padding and full-width digits, not arbitrary text removal or partial matches.
+// Invalid nonempty input must remain nonempty, so it produces no matches instead of silently clearing the filter.
+export const trainNumberKey = value => String(value ?? '').normalize('NFKC').trim().replace(/^0+(?=\d)/,'');
+export const trainNumberSearch = (locale='en',id='trains-number') => `<div class="trains-field number-field"><label for="${id}">${locale==='ko'?'열차 번호':'Train number'}</label><input type="search" id="${id}" inputmode="numeric" autocomplete="off" placeholder="${locale==='ko'?'예: 237':'e.g. 237'}"></div>`;
+// Paired with styles.css: mobile keeps the static label and scope=col, clips the header, and hides its button.
+// Hiding the whole thead loses column names; clipping live buttons would leave invisible keyboard stops.
+export const tableHeading = (key,label,cls='',first='') => `<th scope="col"${cls?` class="${cls}"`:''}${key?` data-key="${key}"`:''}${first?` data-first="${first}"`:''}>${key?`<span class="column-label">${label}</span><button type="button">${label}</button>`:label}</th>`;
+export const num = n => n == null ? '—' : Number(n).toLocaleString('en-US');
+export const pct = n => n == null ? '—' : `${(n*100).toFixed(1)}%`;
+export const pct0 = n => n == null ? '—' : n >= 1 ? '100%' : `${Math.min(99,Math.round(n*100))}%`;
+export const backBtn = '<a class="back-btn" href="./" aria-label="Back to front page" data-tip="Back to front page"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M13 8H3m5-5L3 8l5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></a>';
+// A long train table shows this many trains until the reader asks for all of them (js/trains-page.js).
+export const ROW_CAP = 40;
+// A delay of an hour or more reads as hours and minutes (99 is 1 h 39 min, 179 is 2 h 59 min); a shorter one stays in minutes, and an early arrival follows the same rule with a minus sign (-63 is -1 h 3 min).
+export const minutes = n => n<0 ? `-${minutes(-n)}` : n>=60 ? `${Math.floor(n/60)} h${n%60?` ${n%60} min`:''}` : `${n} min`;
+export const delay = n => n == null ? '—' : `${n>0?'+':''}${minutes(n)}`;
+export const scheduledMinute = (time,day) => time==null?null:+time.slice(0,2)*60+ +time.slice(3)+(day||0)*1440;
+// Runs here share a timetable. Mark both reports when consecutive arrivals imply a reversal.
+export function conflictingArrivals(stops,runs){
+ const calls=stops.map(s=>[s.ordinal,scheduledMinute(s.arrival,s.arrival_day_offset)]),flagged=new Set();
+ // The origin is a departure. A missing report interrupts the comparison.
+ for(let i=2;i<calls.length;i++){
+  const [before,first]=calls[i-1],[after,second]=calls[i];
+  if(first==null||second==null)continue;
+  if(runs.some(({delays})=>delays?.[before]!=null&&delays[after]!=null&&second+delays[after]<first+delays[before])){
+   flagged.add(before);flagged.add(after);
+  }
+ }
+ return flagged;
+}
+// Reuse the two formats per language across the static pages.
+export function dateLabels(locale,month){
+ const options={day:'numeric',month,timeZone:'Asia/Seoul'};
+ const formats=[new Intl.DateTimeFormat(locale,options),new Intl.DateTimeFormat(locale,{...options,year:'numeric'})];
+ return (iso,year=false)=>{
+  if(!iso)return '—';
+  const value=new Date(iso+'T12:00:00+09:00');
+  return Number.isNaN(+value)?String(value):formats[Number(!!year)].format(value);
+ };
+}
+const englishDate=dateLabels('en-GB','short');
+export const date=(iso,year=false)=>englishDate(iso,year).replace('Sept','Sep');
+export const range = (a,b,year=true) => a===b ? date(a,year) : `${date(a)} – ${date(b,year)}`;
+export const dayCount = (a,b) => Math.round((Date.parse(b)-Date.parse(a))/864e5)+1;
+export const isYesterdayInKorea = iso => iso===new Date(Date.now()-864e5).toLocaleDateString('en-CA',{timeZone:'Asia/Seoul'});
+// The exporter selects completed dates. A gap extends the calendar span without adding a day of data.
+export function windowLabel(a,b,days=dayCount(a,b),limit=30){
+ const length=dayCount(a,b),unit=days===1?'day':'days';
+ return days===length ? days===limit?`Last ${days} ${unit}`:`${days} ${unit}` : `${days} completed ${unit}`;
+}
+// The first of several wordings that fits `limit` characters (what a search result shows of a title or description), else the last and shortest.
+export const fitting = (limit,...options) => options.find(o=>o.length<=limit) || options.at(-1);
+// A page title, widest wording first: both words and the site name, both words alone, "delays" and the name, "delays" alone. A long title loses the name before it loses a word.
+export const TITLE_MAX = 60, BRAND = ' · Korean Train Stats';
+export const delaysTitle = (subject,both=true) => fitting(TITLE_MAX,...(both?[`${subject} delays and punctuality${BRAND}`,`${subject} delays and punctuality`]:[]),`${subject} delays${BRAND}`,`${subject} delays`);
+export const windowPhrase = (a,b,days=dayCount(a,b)) => days===30&&days===dayCount(a,b) ? 'the last 30 days' : `${days} completed ${days===1?'day':'days'}`;
+export const span = (a,b,days,limit) => `${windowLabel(a,b,days,limit)} <span class="nb">${a===b?`on ${range(a,b)}`:`from ${date(a)} to ${date(b,true)}`}</span>`;
+// The parts of a header's meta line: one line each on phones, a dot between them on wider screens.
+export const metaLine = (...parts) => parts.map(s=>`<span class="meta-line">${s}</span>`).join('<span class="meta-sep"> · </span>');
+const stamp = s => s ? new Date(s).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Seoul'})+' KST' : 'Not available';
+export const colorDelay = n => `var(--${n<=5?'ontime':n<=10?'d2':n<=20?'d3':n<=30?'d4':'d5'})`;
+const DELAY_SCALE=[['ontime','Within 5 min'],['d2','6–10'],['d3','11–20'],['d4','21–30'],['d5','Over 30']];
+// A share of stops within 5 minutes is drawn in one green; the rest of its track is the late orange (--d3), so a bar reads as on time against late. shareLegend names both.
+// A share needs ten recorded days to show on a list or a station page; a ranking needs twenty.
+export const MIN_DAYS = 10;
+// A share with its bar, for a list row or a table cell.
+export const bar = s => `<span class="v${s==null?' dash':''}">${s==null?'—':pct0(s)}</span><span class="share-bar"><i style="width:${s==null?0:Math.round(s*100)}%"></i></span>`;
+// The noun names the record the share counts: every list page says stops, but the journey pages measure arrivals at one station.
+export const shareLegend = (cls='',noun='stops') => `<div class="legend${cls?' '+cls:''}">${noun?`<span class="legend-label">Share of ${noun}:</span>`:''}<span><i class="swatch" style="background:var(--ontime-mark)"></i>Within 5 min</span><span><i class="swatch" style="background:var(--d3)"></i>More than 5 min late</span></div>`;
+export const scaleLegend = (extra='') => `<div class="legend">${DELAY_SCALE.map(([k,t])=>`<span><i class="swatch" style="background:var(--${k})"></i>${t}</span>`).join('')}${extra}</div>`;
+export const footer = meta => `<p>Reported arrival delays from Korail, not official statistics. On time means within 5 minutes of schedule. Figures may contain errors or gaps, and no guarantee is made that they are correct or complete.</p><p>Compilation and figures: <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. Korail’s rights in its underlying data are unaffected.</p><p>Train list and station positions: Mikołaj Kuranowski’s GTFS (CC BY 4.0) · Updated ${esc(stamp(meta.generated_at))}</p>`;
+// A header figure: the value at 20 px over its label (.stat in styles.css). The first figure of a page's .train-stats line is its share within 5 minutes.
+export const stat = (value,label) => `<span class="stat"><b>${value}</b><span>${label}</span></span>`;
+export const tipText=(title,body='')=>`data-tip="${esc(title+'\n'+body)}"`;
+export function markTip(title,body=''){return `tabindex="0" ${tipText(title,body)} aria-label="${esc(title+'. '+body)}"`;}
+export function hiddenTable(caption,headers,rows){return `<div class="sr-only"><table><caption>${esc(caption)}</caption><thead><tr>${headers.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(row=>`<tr>${row.map(v=>`<td>${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;}
+export const card=(title,note,inner,id='')=>`<div class="chart-card"${id?` id="${id}"`:''}><div class="block-title"><h2>${title}</h2>${note?`<span class="meta">${esc(note)}</span>`:''}</div>${inner}</div>`;
+export function empty(message,link=''){return `<div class="empty"><h2>${esc(message)}</h2>${link}</div>`;}
+export async function getJSON(path,optional=false){const r=await fetch(new URL('../data/'+path,import.meta.url));if(optional&&r.status===404)return null;if(!r.ok)throw Error('Data could not be loaded');return r.json();}
